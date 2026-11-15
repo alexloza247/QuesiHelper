@@ -50,6 +50,7 @@
   table.inv{width:100%;border-collapse:collapse;margin:0 0 4px;font-size:13px}
   table.inv th,table.inv td{border:1px solid #a8a29e;padding:4px 5px;text-align:left}
   table.inv th{background:#f5f5f4;font-size:11.5px;text-transform:uppercase}
+  table.inv th.flv small{display:block;font-size:9.5px;font-weight:400;text-transform:none;line-height:1.2;white-space:normal}
   table.inv td.num,table.inv th.num{text-align:right}
   table.inv input{width:52px;padding:4px 3px;font-size:13px;text-align:right;border:1px solid #d6d3d1;border-radius:5px}
   table.inv input.wide{width:64px}
@@ -144,7 +145,21 @@ const PRODUCTS=[
  {id:"popote",sec:"DESECHABLES",name:"Popote",um:"PZA"},
  {id:"tapa-domo",sec:"DESECHABLES",name:"Tapa domo Pet",um:"PZA"}
 ];
-const FLAVORS=["C","Q","PP","H","Sup","3C","P/H","P/S","P/M","Pas","Jam","Mex","Cub"];
+const FLAVORS=[
+ {code:"C",name:"Sin quesear"},
+ {code:"Q",name:"Queso"},
+ {code:"PP",name:"Peperonni"},
+ {code:"H",name:"Hawaiana"},
+ {code:"Sup",name:"Suprema"},
+ {code:"3C",name:"3 carnes"},
+ {code:"P/H",name:"Peperonni/Hawaiana"},
+ {code:"P/S",name:"Peperonni/Suprema"},
+ {code:"P/M",name:"Peperonni/Mexicana"},
+ {code:"Pas",name:"Pastor"},
+ {code:"Jam",name:"Jamón"},
+ {code:"Mex",name:"Mexicana"},
+ {code:"Cub",name:"Cubana"}
+];
 const LS="quesihelper_v1";
 
 /* ============ Configuración por defecto ============ */
@@ -347,7 +362,7 @@ document.getElementById("view-count").addEventListener("input",e=>{
 function sheetTableHtml(rec,sec,readonly){
   const rows=PRODUCTS.filter(p=>p.sec===sec);
   let h='<h3 class="sec">'+sec+'</h3><div class="scrollx"><table class="inv"><thead><tr><th>Producto</th><th>UM</th>';
-  if(sec==="TORTILLAS"){ FLAVORS.forEach(f=>{h+="<th>"+f+"</th>";}); h+="<th>DEV</th>"; }
+  if(sec==="TORTILLAS"){ FLAVORS.forEach(f=>{h+='<th class="flv"><b>'+f.code+'</b><small>'+esc(f.name)+'</small></th>';}); h+="<th>DEV</th>"; }
   if(sec==="INGREDIENTES"){ h+="<th>Dev/Mer</th>"; }
   h+='<th class="num">INV</th><th class="num">KARDEX</th><th class="num">DIF</th></tr></thead><tbody>';
   rows.forEach(p=>{
@@ -357,8 +372,8 @@ function sheetTableHtml(rec,sec,readonly){
     h+='<tr data-row="'+p.id+'"><td>'+esc(p.name)+'</td><td>'+esc(p.um)+'</td>';
     if(sec==="TORTILLAS"){
       FLAVORS.forEach(f=>{
-        const val=rec.flavors&&rec.flavors[p.id]?rec.flavors[p.id][f]:"";
-        h+='<td>'+(readonly?esc(val===""?"":val):'<input type="number" min="0" step="1" inputmode="numeric" data-flavor="'+p.id+'" data-col="'+f+'" value="'+esc(val)+'">')+'</td>';
+        const val=rec.flavors&&rec.flavors[p.id]?rec.flavors[p.id][f.code]:"";
+        h+='<td>'+(readonly?esc(val===""?"":val):'<input type="number" min="0" step="1" inputmode="numeric" data-flavor="'+p.id+'" data-col="'+f.code+'" value="'+esc(val)+'">')+'</td>';
       });
       const dev=rec.dev&&rec.dev[p.id]!=null?rec.dev[p.id]:"";
       h+='<td>'+(readonly?esc(dev):'<input type="number" min="0" step="1" inputmode="numeric" data-dev="'+p.id+'" value="'+esc(dev)+'">')+'</td>';
@@ -390,7 +405,7 @@ function renderSheet(){
     +'<tr><td><b>FECHA:</b> '+esc(hdr.fecha||"")+'</td><td><b>HORA:</b> '+esc(hdr.hora||"")+'</td></tr></table>'
     +'<div class="muted" style="text-align:right">Actualizado Junio 2025 Op</div></div>';
   SECTIONS.forEach(sec=>{ h+=sheetTableHtml(rec,sec,readonly); });
-  h+='<p class="note">Las columnas de sabores de Tortillas (C, Q, PP, H, Sup, 3C, P/H, P/S, P/M, Pas, Jam, Mex, Cub), DEV y Dev/Mer se llenan a mano en la hoja; la app no calcula su significado. DIF = INV − KARDEX.</p>'
+  h+='<p class="note">Las columnas de Tortillas son las especialidades de pizza (C = Sin quesear, Q = Queso, PP = Peperonni, H = Hawaiana, Sup = Suprema, 3C = 3 carnes, P/H = Peperonni/Hawaiana, P/S = Peperonni/Suprema, P/M = Peperonni/Mexicana, Pas = Pastor, Jam = Jamón, Mex = Mexicana, Cub = Cubana); ahí se anotan las tortillas que quedan de cada especialidad. DEV y Dev/Mer se llenan a mano. DIF = INV − KARDEX.</p>'
     +'<div class="signs"><div>Firma del Gerente</div><div>Firma del Cajero</div><div>Firma del Gerente de zona / Auditor</div></div></div>';
   if(!readonly){
     h+='<button class="btn primary" id="btn-save-history">💾 Guardar en historial</button>';

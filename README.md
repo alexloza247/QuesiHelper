@@ -35,7 +35,7 @@ Al terminar las dos partes, la **Hoja** muestra la misma hoja de papel (seccione
 - **KARDEX** editable por renglón.
 - **DIF** = INV − KARDEX, automático.
 
-Las columnas de sabores de las tortillas (C, Q, PP, H, Sup, 3C, P/H, P/S, P/M, Pas, Jam, Mex, Cub), DEV y Dev/Mer se llenan a mano en la hoja.
+Las columnas de las tortillas son las especialidades de pizza: C = Sin quesear, Q = Queso, PP = Peperonni, H = Hawaiana, Sup = Suprema, 3C = 3 carnes, P/H = Peperonni/Hawaiana, P/S = Peperonni/Suprema, P/M = Peperonni/Mexicana, Pas = Pastor, Jam = Jamón, Mex = Mexicana, Cub = Cubana. En esas casillas se anotan las tortillas que quedan de cada especialidad; se llenan a mano en la hoja. DEV y Dev/Mer también se llenan a mano.
 
 Desde la hoja puedes **guardarla en el Historial**, **compartirla** (texto listo para WhatsApp) o **copiarla**.
 
@@ -54,4 +54,4 @@ En **Historial** se guardan los inventarios por fecha, turno y sucursal. Puedes 
 
 ## Estado
 
-v1 — web app (sin APK por ahora). Pendiente por confirmar con el usuario: qué se anota en las columnas de sabores de las tortillas y en DEV.
+v1 — web app (sin APK por ahora). Pendiente por confirmar con el usuario: qué se anota en DEV y Dev/Mer.
