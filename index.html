@@ -38,6 +38,13 @@
   .fields label{font-size:12.5px;color:#57534e;display:block}
   .fields input{margin-top:2px}
   .hint{font-size:12.5px;color:#b45309;margin-top:6px}
+  .flv-grid{margin-top:8px}
+  .flv-row{display:grid;grid-template-columns:minmax(104px,1.3fr) 1fr 1fr 48px;gap:6px;align-items:center;padding:5px 0;border-bottom:1px solid #fafaf9}
+  .flv-name{font-size:12.5px}
+  .flv-name b{font-size:13px}
+  .flv-row label{font-size:11.5px;color:#57534e;display:block}
+  .flv-row input{width:100%;padding:7px 5px;font-size:14px;margin-top:1px}
+  .flv-tot{font-weight:700;color:#b91c1c;text-align:right;font-size:13.5px}
   .parttabs{display:flex;gap:8px;margin:10px 0}
   .parttabs button{flex:1;border:1px solid #b91c1c;background:#fff;color:#b91c1c;border-radius:10px;padding:11px;font-size:15px;font-weight:700;cursor:pointer}
   .parttabs button.on{background:#b91c1c;color:#fff}
@@ -163,13 +170,14 @@ const FLAVORS=[
 const LS="quesihelper_v1";
 
 /* ============ Configuración por defecto ============ */
-const TORTILLAS_PER_BOX={"tortilla-familiar":3,"tortilla-chica":3,"tortilla-canelo":1,"tortilla-sarten":1};
+const TORTILLA_PER_BOX_PLAIN={"tortilla-familiar":3,"tortilla-chica":3,"tortilla-canelo":1,"tortilla-sarten":1};
+const TORTILLA_PER_BOX_ESP={"tortilla-familiar":2,"tortilla-chica":2,"tortilla-canelo":1,"tortilla-sarten":1};
 function defaultCfg(){
   const c={};
   PRODUCTS.forEach(p=>{
-    if(p.sec==="TORTILLAS") c[p.id]={group:"contable",inPackage:true,qtyPerPackage:TORTILLAS_PER_BOX[p.id],envSize:null,envUnit:"kg",useTare:false,tareWeight:null};
-    else if(p.sec==="INGREDIENTES"||p.sec==="ADEREZOS") c[p.id]={group:"nocontable",inPackage:false,qtyPerPackage:null,envSize:null,envUnit:(p.id==="boneless"?"porción":"kg"),useTare:(p.id==="queso"),tareWeight:null};
-    else c[p.id]={group:"contable",inPackage:false,qtyPerPackage:null,envSize:null,envUnit:"kg",useTare:false,tareWeight:null};
+    if(p.sec==="TORTILLAS") c[p.id]={group:"contable",inPackage:true,qtyPerPackage:TORTILLA_PER_BOX_PLAIN[p.id],qtyPerPackageEsp:TORTILLA_PER_BOX_ESP[p.id],envSize:null,envUnit:"kg",useTare:false,tareWeight:null};
+    else if(p.sec==="INGREDIENTES"||p.sec==="ADEREZOS") c[p.id]={group:"nocontable",inPackage:false,qtyPerPackage:null,qtyPerPackageEsp:null,envSize:null,envUnit:(p.id==="boneless"?"porción":"kg"),useTare:(p.id==="queso"),tareWeight:null};
+    else c[p.id]={group:"contable",inPackage:false,qtyPerPackage:null,qtyPerPackageEsp:null,envSize:null,envUnit:"kg",useTare:false,tareWeight:null};
   });
   return c;
 }
@@ -189,6 +197,10 @@ function load(){
       }
     }
   }catch(e){}
+  // Compatibilidad: configs guardadas en v1 no tienen qtyPerPackageEsp
+  PRODUCTS.forEach(p=>{
+    if(p.sec==="TORTILLAS"&&S.cfg[p.id]&&S.cfg[p.id].inPackage&&S.cfg[p.id].qtyPerPackageEsp==null) S.cfg[p.id].qtyPerPackageEsp=TORTILLA_PER_BOX_ESP[p.id];
+  });
 }
 function save(){ try{localStorage.setItem(LS,JSON.stringify(S));}catch(e){} }
 function num(v){const n=parseFloat(v);return isNaN(n)?0:n;}
@@ -204,10 +216,41 @@ function newDraft(){
 function currentRec(){ return ui.histId? S.history.find(h=>h.id===ui.histId)||null : S.draft; }
 
 /* ============ Cálculos ============ */
+/* Tortillas: cada caja es de una sola especialidad. Sin quesear (C) usa
+   qtyPerPackage; con especialidad usa qtyPerPackageEsp. */
+function tortillaPerBox(pid,code){
+  const cfg=S.cfg[pid]; if(!cfg) return 0;
+  return code==="C"?num(cfg.qtyPerPackage):num(cfg.qtyPerPackageEsp);
+}
+function flavorPartTotal(rec,pid,part,code){
+  if(!rec) return 0;
+  const d=(rec.parts[String(part)]&&rec.parts[String(part)][pid])||{};
+  const fl=(d.flavors&&d.flavors[code])||{};
+  return num(fl.cajas)*tortillaPerBox(pid,code)+num(fl.sueltas);
+}
+function flavorTotal(rec,pid,code){ return flavorPartTotal(rec,pid,1,code)+flavorPartTotal(rec,pid,2,code); }
+function boxesPartTotal(rec,pid,part){
+  if(!rec) return 0;
+  const d=(rec.parts[String(part)]&&rec.parts[String(part)][pid])||{};
+  const fl=d.flavors||{};
+  return FLAVORS.reduce((a,f)=>a+num(fl[f.code]&&fl[f.code].cajas),0);
+}
+function partHasFlavors(rec,pid,part){
+  if(!rec) return false;
+  const d=rec.parts&&rec.parts[String(part)]&&rec.parts[String(part)][pid];
+  if(!d||!d.flavors) return false;
+  return FLAVORS.some(f=>{const x=d.flavors[f.code];return x&&(num(x.cajas)!==0||num(x.sueltas)!==0);});
+}
 function partTotal(rec,pid,part){
   if(!rec) return 0;
   const cfg=S.cfg[pid]; if(!cfg) return 0;
   const d=(rec.parts[String(part)]&&rec.parts[String(part)][pid])||{};
+  const p=PRODUCTS.find(x=>x.id===pid);
+  if(p&&p.sec==="TORTILLAS"&&cfg.group==="contable"&&cfg.inPackage){
+    if(partHasFlavors(rec,pid,part)) return FLAVORS.reduce((a,f)=>a+flavorPartTotal(rec,pid,part,f.code),0);
+    // Compatibilidad con borradores/historial de v1 (conteo general por cajas)
+    return num(d.cajas)*num(cfg.qtyPerPackage)+num(d.sueltas);
+  }
   if(cfg.group==="contable"){
     if(cfg.inPackage) return num(d.cajas)*num(cfg.qtyPerPackage)+num(d.sueltas);
     return num(d.piezas);
@@ -259,6 +302,20 @@ function countInputsHtml(pid,part){
   const cfg=S.cfg[pid];
   const d=(S.draft.parts[String(part)]&&S.draft.parts[String(part)][pid])||{};
   const v=(f)=>esc(d[f]==null?"":d[f]);
+  const p=PRODUCTS.find(x=>x.id===pid);
+  if(p&&p.sec==="TORTILLAS"&&cfg.group==="contable"&&cfg.inPackage){
+    let h='<div class="flv-grid">';
+    FLAVORS.forEach(f=>{
+      const fl=(d.flavors&&d.flavors[f.code])||{};
+      const pb=tortillaPerBox(pid,f.code);
+      h+='<div class="flv-row"><span class="flv-name"><b>'+f.code+'</b> '+esc(f.name)+' <span class="um">×'+fmt(pb)+'</span></span>'
+        +'<label>Cajas<input type="number" min="0" step="1" inputmode="numeric" data-pid="'+pid+'" data-flavor="'+f.code+'" data-field="cajas" data-part="'+part+'" value="'+esc(fl.cajas==null?"":fl.cajas)+'"></label>'
+        +'<label>Sueltas<input type="number" min="0" step="1" inputmode="numeric" data-pid="'+pid+'" data-flavor="'+f.code+'" data-field="sueltas" data-part="'+part+'" value="'+esc(fl.sueltas==null?"":fl.sueltas)+'"></label>'
+        +'<span class="flv-tot" data-flv-tot="'+pid+':'+f.code+'">'+fmt(flavorPartTotal(S.draft,pid,part,f.code))+'</span></div>';
+    });
+    h+='</div><div class="hint"><b data-boxes-tot="'+pid+'">'+boxesPartTotal(S.draft,pid,part)+'</b> cajas en esta parte · Sin quesear ×'+fmt(tortillaPerBox(pid,"C"))+' por caja; con especialidad ×'+fmt(tortillaPerBox(pid,"Q"))+' por caja. Cada caja es de una sola especialidad.</div>';
+    return h;
+  }
   if(cfg.group==="contable"&&cfg.inPackage){
     const noQty=num(cfg.qtyPerPackage)<=0;
     return '<div class="fields">'
@@ -346,6 +403,14 @@ function updateCountProgress(){
     const p=PRODUCTS.find(x=>x.id===pid);
     sp.innerHTML=fmt(partTotal(S.draft,pid,part))+" <small>"+esc(p.um)+"</small>";
   });
+  document.querySelectorAll("[data-flv-tot]").forEach(sp=>{
+    const i=sp.dataset.flvTot.indexOf(":");
+    const pid=sp.dataset.flvTot.slice(0,i), code=sp.dataset.flvTot.slice(i+1);
+    sp.textContent=fmt(flavorPartTotal(S.draft,pid,part,code));
+  });
+  document.querySelectorAll("[data-boxes-tot]").forEach(sp=>{
+    sp.textContent=boxesPartTotal(S.draft,sp.dataset.boxesTot,part);
+  });
 }
 document.getElementById("view-count").addEventListener("input",e=>{
   const inp=e.target.closest("input[data-pid]");
@@ -353,7 +418,13 @@ document.getElementById("view-count").addEventListener("input",e=>{
   const pid=inp.dataset.pid, field=inp.dataset.field, part=inp.dataset.part;
   if(!S.draft.parts[part]) S.draft.parts[part]={};
   if(!S.draft.parts[part][pid]) S.draft.parts[part][pid]={};
-  S.draft.parts[part][pid][field]=inp.value;
+  if(inp.dataset.flavor){
+    if(!S.draft.parts[part][pid].flavors) S.draft.parts[part][pid].flavors={};
+    if(!S.draft.parts[part][pid].flavors[inp.dataset.flavor]) S.draft.parts[part][pid].flavors[inp.dataset.flavor]={};
+    S.draft.parts[part][pid].flavors[inp.dataset.flavor][field]=inp.value;
+  } else {
+    S.draft.parts[part][pid][field]=inp.value;
+  }
   save();
   updateCountProgress();
 });
@@ -372,8 +443,11 @@ function sheetTableHtml(rec,sec,readonly){
     h+='<tr data-row="'+p.id+'"><td>'+esc(p.name)+'</td><td>'+esc(p.um)+'</td>';
     if(sec==="TORTILLAS"){
       FLAVORS.forEach(f=>{
-        const val=rec.flavors&&rec.flavors[p.id]?rec.flavors[p.id][f.code]:"";
-        h+='<td>'+(readonly?esc(val===""?"":val):'<input type="number" min="0" step="1" inputmode="numeric" data-flavor="'+p.id+'" data-col="'+f.code+'" value="'+esc(val)+'">')+'</td>';
+        // Calculadas: suma de ambas partes (cajas × por caja + sueltas por especialidad).
+        // Hojas viejas de v1 sin conteo por especialidad muestran sus valores manuales guardados.
+        const stored=rec.flavors&&rec.flavors[p.id]?rec.flavors[p.id][f.code]:undefined;
+        const val=(partHasFlavors(rec,p.id,1)||partHasFlavors(rec,p.id,2))?flavorTotal(rec,p.id,f.code):(stored==null||stored===""?0:stored);
+        h+='<td class="num">'+fmt(num(val))+'</td>';
       });
       const dev=rec.dev&&rec.dev[p.id]!=null?rec.dev[p.id]:"";
       h+='<td>'+(readonly?esc(dev):'<input type="number" min="0" step="1" inputmode="numeric" data-dev="'+p.id+'" value="'+esc(dev)+'">')+'</td>';
@@ -405,7 +479,7 @@ function renderSheet(){
     +'<tr><td><b>FECHA:</b> '+esc(hdr.fecha||"")+'</td><td><b>HORA:</b> '+esc(hdr.hora||"")+'</td></tr></table>'
     +'<div class="muted" style="text-align:right">Actualizado Junio 2025 Op</div></div>';
   SECTIONS.forEach(sec=>{ h+=sheetTableHtml(rec,sec,readonly); });
-  h+='<p class="note">Las columnas de Tortillas son las especialidades de pizza (C = Sin quesear, Q = Queso, PP = Peperonni, H = Hawaiana, Sup = Suprema, 3C = 3 carnes, P/H = Peperonni/Hawaiana, P/S = Peperonni/Suprema, P/M = Peperonni/Mexicana, Pas = Pastor, Jam = Jamón, Mex = Mexicana, Cub = Cubana); ahí se anotan las tortillas que quedan de cada especialidad. DEV y Dev/Mer se llenan a mano. DIF = INV − KARDEX.</p>'
+  h+='<p class="note">Las columnas de Tortillas son las especialidades de pizza (C = Sin quesear, Q = Queso, PP = Peperonni, H = Hawaiana, Sup = Suprema, 3C = 3 carnes, P/H = Peperonni/Hawaiana, P/S = Peperonni/Suprema, P/M = Peperonni/Mexicana, Pas = Pastor, Jam = Jamón, Mex = Mexicana, Cub = Cubana). Cada celda = cajas × tortillas por caja + sueltas, sumando cuarto frío y cocina. Por caja: Sin quesear — Familiar 3, Chica 3, Canelo 1, Sartén 1; con especialidad — Familiar 2, Chica 2, Canelo 1, Sartén 1. Cada caja es de una sola especialidad. INV de tortillas = suma de las 13 especialidades. DEV y Dev/Mer se llenan a mano. DIF = INV − KARDEX.</p>'
     +'<div class="signs"><div>Firma del Gerente</div><div>Firma del Cajero</div><div>Firma del Gerente de zona / Auditor</div></div></div>';
   if(!readonly){
     h+='<button class="btn primary" id="btn-save-history">💾 Guardar en historial</button>';
@@ -434,11 +508,6 @@ document.getElementById("view-sheet").addEventListener("input",e=>{
     const pid=inp.dataset.kardex;
     const cell=document.querySelector('[data-dif="'+pid+'"]');
     if(cell) cell.innerHTML="<b>"+fmt(difOf(S.draft,pid))+"</b>";
-  } else if(inp.dataset.flavor!=null){
-    if(!S.draft.flavors) S.draft.flavors={};
-    if(!S.draft.flavors[inp.dataset.flavor]) S.draft.flavors[inp.dataset.flavor]={};
-    S.draft.flavors[inp.dataset.flavor][inp.dataset.col]=inp.value;
-    save();
   } else if(inp.dataset.dev!=null){
     if(!S.draft.dev) S.draft.dev={};
     S.draft.dev[inp.dataset.dev]=inp.value;
@@ -537,8 +606,8 @@ function renderHistory(){
 
 /* ============ Vista Configuración ============ */
 function cfgGroupDefaults(group){
-  if(group==="contable") return {group:"contable",inPackage:false,qtyPerPackage:null,envSize:null,envUnit:"kg",useTare:false,tareWeight:null};
-  return {group:"nocontable",inPackage:false,qtyPerPackage:null,envSize:null,envUnit:"kg",useTare:false,tareWeight:null};
+  if(group==="contable") return {group:"contable",inPackage:false,qtyPerPackage:null,qtyPerPackageEsp:null,envSize:null,envUnit:"kg",useTare:false,tareWeight:null};
+  return {group:"nocontable",inPackage:false,qtyPerPackage:null,qtyPerPackageEsp:null,envSize:null,envUnit:"kg",useTare:false,tareWeight:null};
 }
 function renderConfig(){
   const el=document.getElementById("view-config");
@@ -554,7 +623,13 @@ function renderConfig(){
       if(group==="contable"){
         h+='<label class="check"><input type="checkbox" data-cfg-field="inPackage" data-pid="'+p.id+'" '+(c.inPackage?"checked":"")+'> Viene en paquete</label>';
         if(c.inPackage){
-          h+='<label class="f">Cantidad por paquete</label><input type="number" min="1" step="1" inputmode="numeric" data-cfg-field="qtyPerPackage" data-pid="'+p.id+'" value="'+esc(c.qtyPerPackage==null?"":c.qtyPerPackage)+'">';
+          if(p.sec==="TORTILLAS"){
+            h+='<div class="grid2"><div><label class="f">Por paquete · Sin quesear (C)</label><input type="number" min="1" step="1" inputmode="numeric" data-cfg-field="qtyPerPackage" data-pid="'+p.id+'" value="'+esc(c.qtyPerPackage==null?"":c.qtyPerPackage)+'"></div>'
+              +'<div><label class="f">Por paquete · Con especialidad</label><input type="number" min="1" step="1" inputmode="numeric" data-cfg-field="qtyPerPackageEsp" data-pid="'+p.id+'" value="'+esc(c.qtyPerPackageEsp==null?"":c.qtyPerPackageEsp)+'"></div></div>'
+              +'<p class="note">Cada caja es de una sola especialidad.</p>';
+          } else {
+            h+='<label class="f">Cantidad por paquete</label><input type="number" min="1" step="1" inputmode="numeric" data-cfg-field="qtyPerPackage" data-pid="'+p.id+'" value="'+esc(c.qtyPerPackage==null?"":c.qtyPerPackage)+'">';
+          }
         }
       } else {
         h+='<div class="grid2"><div><label class="f">Peso o litros del envase</label><input type="number" min="0" step="0.01" inputmode="decimal" data-cfg-field="envSize" data-pid="'+p.id+'" value="'+esc(c.envSize==null?"":c.envSize)+'"></div>'
@@ -591,7 +666,11 @@ document.getElementById("view-config").addEventListener("input",e=>{
   const pid=inp.dataset.pid, f=inp.dataset.cfgField;
   if(f==="inPackage"||f==="useTare"){
     S.cfg[pid][f]=inp.checked;
-    if(f==="inPackage"&&inp.checked&&S.cfg[pid].qtyPerPackage==null) S.cfg[pid].qtyPerPackage=1;
+    if(f==="inPackage"&&inp.checked){
+      if(S.cfg[pid].qtyPerPackage==null) S.cfg[pid].qtyPerPackage=1;
+      const pp=PRODUCTS.find(x=>x.id===pid);
+      if(pp&&pp.sec==="TORTILLAS"&&S.cfg[pid].qtyPerPackageEsp==null) S.cfg[pid].qtyPerPackageEsp=TORTILLA_PER_BOX_ESP[pid];
+    }
     if(f==="useTare"&&inp.checked&&S.cfg[pid].tareWeight==null) S.cfg[pid].tareWeight=0;
     save(); renderConfig();
   } else if(f==="envUnit"){
@@ -614,7 +693,7 @@ document.getElementById("view-config").addEventListener("change",e=>{
 /* ============ Inicio ============ */
 load();
 show("count");
-window.QH={get S(){return S;},PRODUCTS,SECTIONS,FLAVORS,partTotal,invTotal,difOf,fmt,defaultCfg,sheetText,show,renderCount,renderSheet,renderHistory,renderConfig};
+window.QH={get S(){return S;},PRODUCTS,SECTIONS,FLAVORS,partTotal,invTotal,difOf,fmt,defaultCfg,sheetText,show,renderCount,renderSheet,renderHistory,renderConfig,flavorTotal,flavorPartTotal,tortillaPerBox,boxesPartTotal,partHasFlavors};
 </script>
 </body>
 </html>
