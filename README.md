@@ -10,7 +10,7 @@ Corre en el navegador del celular (o en GitHub Pages). Los datos se guardan solo
 En **Configuración** están todos los insumos separados en **Contables** y **No contables**. Puedes mover un insumo de un grupo al otro.
 
 - **Contable:** marca el check **"Viene en paquete"** si aplica y pon la **cantidad por paquete**. Para las **tortillas** hay dos cantidades: **Sin quesear** y **Con especialidad** (cada caja es de una sola especialidad, nunca mezclan). Ej. Tortilla Familiar: 3 por caja sin quesear, 2 con especialidad; Tortilla Canelo: 1 y 1.
-- **No contable:** pon el **peso o litros del envase** (ej. bolsa de queso de 5 kg) y, si el producto suelto se pesa en un recipiente, marca **"Agregar peso del recipiente"** y pon el **peso del recipiente**.
+- **No contable:** pon los **tipos de bolsa** que te traen (pueden ser varios: ej. queso en bolsas de 5 kg y de 3 kg — cada tipo con su peso y un nombre opcional; usa **"+ Agregar tipo de bolsa"**) y, si el producto suelto se pesa en un recipiente, marca **"Agregar peso del recipiente"** y pon el **peso del recipiente**. La báscula con recipiente solo se pesa en la **cocina**: en el cuarto frío el producto está en bolsas cerradas.
 
 Los valores se ponen una vez y quedan guardados hasta que los cambies en Configuración. Ya vienen cargados valores iniciales sensatos: tortillas en paquete — Sin quesear: Familiar 3, Chica 3, Canelo 1, Sartén 1 por caja; Con especialidad: Familiar 2, Chica 2, Canelo 1, Sartén 1 por caja; cajas, salsas, refrescos y desechables contables sin paquete; ingredientes y aderezos no contables (el Queso ya trae activado el check del recipiente como ejemplo).
 
@@ -27,7 +27,7 @@ Cómo se calcula cada producto:
 - **Tortillas:** en cada parte se cuentan las **cajas por especialidad** (cada caja es de una sola especialidad) y las **sueltas**. Cada celda de especialidad = cajas × tortillas por caja + sueltas. Por caja: Sin quesear — Familiar 3, Chica 3, Canelo 1, Sartén 1; Con especialidad — Familiar 2, Chica 2, Canelo 1, Sartén 1. Ej. 81 cajas de Familiar sin quesear = 243 tortillas en la columna C.
 - **Contable en paquete (otros):** cajas × cantidad por paquete + sueltas.
 - **Contable sin paquete:** piezas.
-- **No contable:** envases × tamaño del envase + kg sueltos + (peso en báscula − peso del recipiente, si aplica).
+- **No contable:** suma de bolsas por tipo (bolsas × peso de cada tipo) + kg sueltos + (peso en báscula − peso del recipiente, si aplica — **solo en cocina**; en cuarto frío no se pesa con recipiente).
 
 ### 3. Hoja final
 Al terminar las dos partes, la **Hoja** muestra la misma hoja de papel (secciones, columnas, encabezado y firmas), con:
@@ -55,4 +55,4 @@ En **Historial** se guardan los inventarios por fecha, turno y sucursal. Puedes 
 
 ## Estado
 
-v1.1 — web app (sin APK por ahora). Regla de tortillas confirmada: cajas por especialidad sin mezclar, por caja según tipo y especialidad, INV = suma de las 13 especialidades. Pendiente por confirmar con el usuario: qué se anota en DEV y Dev/Mer.
+v1.1 — web app (sin APK por ahora). Regla de tortillas confirmada: cajas por especialidad sin mezclar, por caja según tipo y especialidad, INV = suma de las 13 especialidades. Báscula con recipiente solo en cocina; un no contable puede tener varios tipos de bolsa (mismo renglón en la hoja). Pendiente por confirmar con el usuario: qué se anota en DEV y Dev/Mer.

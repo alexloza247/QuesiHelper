@@ -177,7 +177,7 @@ function defaultCfg(){
   const c={};
   PRODUCTS.forEach(p=>{
     if(p.sec==="TORTILLAS") c[p.id]={group:"contable",inPackage:true,qtyPerPackage:TORTILLA_PER_BOX_PLAIN[p.id],qtyPerPackageEsp:TORTILLA_PER_BOX_ESP[p.id],envSize:null,envUnit:"kg",useTare:false,tareWeight:null};
-    else if(p.sec==="INGREDIENTES"||p.sec==="ADEREZOS") c[p.id]={group:"nocontable",inPackage:false,qtyPerPackage:null,qtyPerPackageEsp:null,envSize:null,envUnit:(p.id==="boneless"?"porción":"kg"),useTare:(p.id==="queso"),tareWeight:null};
+    else if(p.sec==="INGREDIENTES"||p.sec==="ADEREZOS") c[p.id]={group:"nocontable",inPackage:false,qtyPerPackage:null,qtyPerPackageEsp:null,bagTypes:[],envSize:null,envUnit:(p.id==="boneless"?"porción":"kg"),useTare:(p.id==="queso"),tareWeight:null};
     else c[p.id]={group:"contable",inPackage:false,qtyPerPackage:null,qtyPerPackageEsp:null,envSize:null,envUnit:"kg",useTare:false,tareWeight:null};
   });
   return c;
@@ -201,6 +201,13 @@ function load(){
   // Compatibilidad: configs guardadas en v1 no tienen qtyPerPackageEsp
   PRODUCTS.forEach(p=>{
     if(p.sec==="TORTILLAS"&&S.cfg[p.id]&&S.cfg[p.id].inPackage&&S.cfg[p.id].qtyPerPackageEsp==null) S.cfg[p.id].qtyPerPackageEsp=TORTILLA_PER_BOX_ESP[p.id];
+  });
+  // Compatibilidad: configs de v1 con un solo envase migran a un tipo de bolsa
+  PRODUCTS.forEach(p=>{
+    const c=S.cfg[p.id];
+    if(c&&c.group==="nocontable"&&!Array.isArray(c.bagTypes)){
+      c.bagTypes=num(c.envSize)>0?[{name:"",size:num(c.envSize)}]:[];
+    }
   });
 }
 function save(){ try{localStorage.setItem(LS,JSON.stringify(S));}catch(e){} }
@@ -242,6 +249,13 @@ function partHasFlavors(rec,pid,part){
   if(!d||!d.flavors) return false;
   return FLAVORS.some(f=>{const x=d.flavors[f.code];return x&&(num(x.cajas)!==0||num(x.sueltas)!==0);});
 }
+/* Tipos de bolsa de un no contable. Config vieja (un solo envase) migra a
+   un tipo de bolsa con ese peso. */
+function bagTypesOf(cfg){
+  if(cfg&&Array.isArray(cfg.bagTypes)) return cfg.bagTypes;
+  if(cfg&&num(cfg.envSize)>0) return [{name:"",size:num(cfg.envSize)}];
+  return [];
+}
 function partTotal(rec,pid,part){
   if(!rec) return 0;
   const cfg=S.cfg[pid]; if(!cfg) return 0;
@@ -257,9 +271,17 @@ function partTotal(rec,pid,part){
     return num(d.piezas);
   }
   let t=0;
-  if(num(cfg.envSize)>0) t+=num(d.envases)*num(cfg.envSize);
+  // Bolsas: suma por tipo (bolsas_i × peso_i). Compat con borradores viejos:
+  // el campo "envases" valía como bolsas del primer tipo de bolsa.
+  const types=bagTypesOf(cfg);
+  const bolsas=Array.isArray(d.bolsas)?d.bolsas:null;
+  if(bolsas) types.forEach((ty,i)=>{ t+=num(bolsas[i])*num(ty.size); });
+  else if(num(d.envases)>0) t+=num(d.envases)*(types.length?num(types[0].size):num(cfg.envSize));
   t+=num(d.sueltos);
-  if(cfg.useTare && d.bascula!=null && d.bascula!=="") t+=Math.max(0,num(d.bascula)-num(cfg.tareWeight));
+  // La báscula con recipiente solo se pesa en cocina (parte 2): en el cuarto
+  // frío el producto está en bolsas cerradas. Un valor viejo de báscula en
+  // cuarto frío se ignora.
+  if(Number(part)===2 && cfg.useTare && d.bascula!=null && d.bascula!=="") t+=Math.max(0,num(d.bascula)-num(cfg.tareWeight));
   return t;
 }
 function invTotal(rec,pid){ return partTotal(rec,pid,1)+partTotal(rec,pid,2); }
@@ -328,16 +350,29 @@ function countInputsHtml(pid,part){
   if(cfg.group==="contable"){
     return '<div class="fields"><label>Piezas<input type="number" min="0" step="1" inputmode="numeric" data-pid="'+pid+'" data-field="piezas" data-part="'+part+'" value="'+v("piezas")+'"></label></div>';
   }
-  const noEnv=num(cfg.envSize)<=0;
-  let h='<div class="fields">'
-    +'<label>Envases / bolsas'+(noEnv?' <span class="hint">(sin tamaño configurado)</span>':'')+'<input type="number" min="0" step="1" inputmode="numeric" data-pid="'+pid+'" data-field="envases" data-part="'+part+'" value="'+v("envases")+'" '+(noEnv?"disabled":"")+'>'+'</label>'
-    +'<label>Kg sueltos (opcional)<input type="number" min="0" step="0.01" inputmode="decimal" data-pid="'+pid+'" data-field="sueltos" data-part="'+part+'" value="'+v("sueltos")+'"></label>';
-  if(cfg.useTare){
+  const types=bagTypesOf(cfg);
+  const unit=cfg.envUnit||"kg";
+  const hasBags=types.some(t=>num(t.size)>0);
+  let h='<div class="fields">';
+  types.forEach((ty,i)=>{
+    const label=ty.name?esc(ty.name):("de "+fmt(num(ty.size))+" "+unit);
+    const val=Array.isArray(d.bolsas)?(d.bolsas[i]==null?"":d.bolsas[i]):"";
+    h+='<label>Bolsas '+label+'<input type="number" min="0" step="1" inputmode="numeric" data-pid="'+pid+'" data-field="bolsas" data-bag-idx="'+i+'" data-part="'+part+'" value="'+esc(val)+'" '+(num(ty.size)<=0?"disabled":"")+'>'+'</label>';
+  });
+  h+='<label>Kg sueltos (opcional)<input type="number" min="0" step="0.01" inputmode="decimal" data-pid="'+pid+'" data-field="sueltos" data-part="'+part+'" value="'+v("sueltos")+'"></label>';
+  if(cfg.useTare&&Number(part)===2){
     h+='<label>Peso en báscula (con recipiente)<input type="number" min="0" step="0.01" inputmode="decimal" data-pid="'+pid+'" data-field="bascula" data-part="'+part+'" value="'+v("bascula")+'"></label>';
   }
   h+='</div>';
-  h+='<div class="hint">Total: envases × '+fmt(num(cfg.envSize))+' '+(cfg.envUnit||"kg")+' + kg sueltos'+(cfg.useTare?' + (báscula − recipiente '+fmt(num(cfg.tareWeight))+' kg)':'')+'.</div>';
-  if(noEnv) h+='<div class="hint">Configura el tamaño del envase en Configuración para poder contar bolsas.</div>';
+  let hintTxt="Total: ";
+  if(types.length) hintTxt+=types.map(ty=>{const nm=ty.name?ty.name:("bolsas de "+fmt(num(ty.size))+" "+unit);return nm+" × su peso";}).join(" + ")+" + kg sueltos";
+  else hintTxt+="kg sueltos";
+  if(cfg.useTare){
+    if(Number(part)===2) hintTxt+=' + (báscula − recipiente '+fmt(num(cfg.tareWeight))+' kg)';
+    else hintTxt+=' · La báscula con recipiente se pesa solo en cocina';
+  }
+  h+='<div class="hint">'+hintTxt+'.</div>';
+  if(!hasBags) h+='<div class="hint">Configura los tipos de bolsa en Configuración para poder contar bolsas.</div>';
   return h;
 }
 function renderCount(){
@@ -364,7 +399,7 @@ function renderCount(){
   }
   const part=ui.part;
   const partName=part===1?"Cuarto frío":"Cocina";
-  const unconfigured=PRODUCTS.filter(p=>S.cfg[p.id].group==="nocontable"&&num(S.cfg[p.id].envSize)<=0).length;
+  const unconfigured=PRODUCTS.filter(p=>S.cfg[p.id].group==="nocontable"&&!bagTypesOf(S.cfg[p.id]).some(t=>num(t.size)>0)).length;
   let h='<h2>Conteo · '+partName+'</h2>'
     +'<div class="parttabs"><button data-part="1" class="'+(part===1?"on":"")+'">1 · Cuarto frío</button><button data-part="2" class="'+(part===2?"on":"")+'">2 · Cocina</button></div>'
     +'<p class="muted">'+esc(S.draft.header.sucursal||"Sin sucursal")+' · '+esc(S.draft.header.turno||"Sin turno")+' · '+esc(S.draft.header.fecha)+' '+esc(S.draft.header.hora)+' · <span id="count-progress"></span></p>'
@@ -423,6 +458,9 @@ document.getElementById("view-count").addEventListener("input",e=>{
     if(!S.draft.parts[part][pid].flavors) S.draft.parts[part][pid].flavors={};
     if(!S.draft.parts[part][pid].flavors[inp.dataset.flavor]) S.draft.parts[part][pid].flavors[inp.dataset.flavor]={};
     S.draft.parts[part][pid].flavors[inp.dataset.flavor][field]=inp.value;
+  } else if(inp.dataset.bagIdx!=null){
+    if(!Array.isArray(S.draft.parts[part][pid].bolsas)) S.draft.parts[part][pid].bolsas=[];
+    S.draft.parts[part][pid].bolsas[parseInt(inp.dataset.bagIdx,10)]=inp.value;
   } else {
     S.draft.parts[part][pid][field]=inp.value;
   }
@@ -614,7 +652,7 @@ function renderHistory(){
 /* ============ Vista Configuración ============ */
 function cfgGroupDefaults(group){
   if(group==="contable") return {group:"contable",inPackage:false,qtyPerPackage:null,qtyPerPackageEsp:null,envSize:null,envUnit:"kg",useTare:false,tareWeight:null};
-  return {group:"nocontable",inPackage:false,qtyPerPackage:null,qtyPerPackageEsp:null,envSize:null,envUnit:"kg",useTare:false,tareWeight:null};
+  return {group:"nocontable",inPackage:false,qtyPerPackage:null,qtyPerPackageEsp:null,bagTypes:[],envSize:null,envUnit:"kg",useTare:false,tareWeight:null};
 }
 function renderConfig(){
   const el=document.getElementById("view-config");
@@ -639,9 +677,16 @@ function renderConfig(){
           }
         }
       } else {
-        h+='<div class="grid2"><div><label class="f">Peso o litros del envase</label><input type="number" min="0" step="0.01" inputmode="decimal" data-cfg-field="envSize" data-pid="'+p.id+'" value="'+esc(c.envSize==null?"":c.envSize)+'"></div>'
-          +'<div><label class="f">Unidad</label><select data-cfg-field="envUnit" data-pid="'+p.id+'">'
-          +["kg","l","porción"].map(u=>'<option value="'+u+'" '+(c.envUnit===u?"selected":"")+'>'+u+'</option>').join("")+'</select></div></div>'
+        const types=bagTypesOf(c);
+        h+='<label class="f">Tipos de bolsa (peso por bolsa)</label>';
+        types.forEach((ty,i)=>{
+          h+='<div class="grid2" style="margin-top:6px"><div><input type="text" placeholder="Nombre (opcional)" data-cfg-field="bagTypeName" data-bag-idx="'+i+'" data-pid="'+p.id+'" value="'+esc(ty.name||"")+'"></div>'
+            +'<div style="display:flex;gap:6px"><input type="number" min="0" step="0.01" inputmode="decimal" data-cfg-field="bagTypeSize" data-bag-idx="'+i+'" data-pid="'+p.id+'" value="'+esc(ty.size==null?"":ty.size)+'" style="flex:1;min-width:0">'
+            +'<button class="btn small ghost" data-del-bag="'+p.id+':'+i+'">✕</button></div></div>';
+        });
+        h+='<button class="btn small secondary" data-add-bag="'+p.id+'" style="margin-top:6px">+ Agregar tipo de bolsa</button>';
+        h+='<label class="f">Unidad</label><select data-cfg-field="envUnit" data-pid="'+p.id+'">'
+          +["kg","l","porción"].map(u=>'<option value="'+u+'" '+(c.envUnit===u?"selected":"")+'>'+u+'</option>').join("")+'</select>'
           +'<label class="check"><input type="checkbox" data-cfg-field="useTare" data-pid="'+p.id+'" '+(c.useTare?"checked":"")+'> Agregar peso del recipiente</label>';
         if(c.useTare){
           h+='<label class="f">Peso del recipiente (kg)</label><input type="number" min="0" step="0.01" inputmode="decimal" data-cfg-field="tareWeight" data-pid="'+p.id+'" value="'+esc(c.tareWeight==null?"":c.tareWeight)+'">';
@@ -661,6 +706,18 @@ function renderConfig(){
     save(); renderConfig();
     toast("Insumo movido a "+(ng==="contable"?"Contables":"No contables"));
   }));
+  el.querySelectorAll("[data-add-bag]").forEach(b=>b.addEventListener("click",()=>{
+    const pid=b.dataset.addBag;
+    if(!Array.isArray(S.cfg[pid].bagTypes)) S.cfg[pid].bagTypes=[];
+    S.cfg[pid].bagTypes.push({name:"",size:null});
+    save(); renderConfig();
+  }));
+  el.querySelectorAll("[data-del-bag]").forEach(b=>b.addEventListener("click",()=>{
+    const parts=b.dataset.delBag.split(":");
+    const pid=parts[0], idx=parseInt(parts[1],10);
+    if(Array.isArray(S.cfg[pid].bagTypes)) S.cfg[pid].bagTypes.splice(idx,1);
+    save(); renderConfig();
+  }));
   document.getElementById("btn-reset-cfg").addEventListener("click",()=>{
     if(confirm("¿Restablecer todos los insumos a los valores iniciales?")){
       S.cfg=defaultCfg(); save(); renderConfig(); toast("Configuración restablecida");
@@ -671,6 +728,14 @@ document.getElementById("view-config").addEventListener("input",e=>{
   const inp=e.target.closest("[data-cfg-field]");
   if(!inp) return;
   const pid=inp.dataset.pid, f=inp.dataset.cfgField;
+  if(f==="bagTypeName"||f==="bagTypeSize"){
+    const idx=parseInt(inp.dataset.bagIdx,10);
+    const types=S.cfg[pid].bagTypes;
+    if(!Array.isArray(types)||!types[idx]) return;
+    if(f==="bagTypeName") types[idx].name=inp.value;
+    else types[idx].size=(inp.value===""?null:inp.value);
+    save(); return;
+  }
   if(f==="inPackage"||f==="useTare"){
     S.cfg[pid][f]=inp.checked;
     if(f==="inPackage"&&inp.checked){
@@ -700,7 +765,7 @@ document.getElementById("view-config").addEventListener("change",e=>{
 /* ============ Inicio ============ */
 load();
 show("count");
-window.QH={get S(){return S;},PRODUCTS,SECTIONS,FLAVORS,partTotal,invTotal,difOf,fmt,defaultCfg,sheetText,show,renderCount,renderSheet,renderHistory,renderConfig,flavorTotal,flavorPartTotal,tortillaPerBox,boxesPartTotal,partHasFlavors};
+window.QH={get S(){return S;},PRODUCTS,SECTIONS,FLAVORS,partTotal,invTotal,difOf,fmt,defaultCfg,sheetText,show,renderCount,renderSheet,renderHistory,renderConfig,flavorTotal,flavorPartTotal,tortillaPerBox,boxesPartTotal,partHasFlavors,bagTypesOf};
 </script>
 </body>
 </html>
