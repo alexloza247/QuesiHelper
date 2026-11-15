@@ -36,7 +36,7 @@ Al terminar las dos partes, la **Hoja** muestra la misma hoja de papel (seccione
 - **KARDEX** editable por renglón.
 - **DIF** = INV − KARDEX, automático.
 
-Las columnas de las tortillas son las especialidades de pizza: C = Sin quesear, Q = Queso, PP = Peperonni, H = Hawaiana, Sup = Suprema, 3C = 3 carnes, P/H = Peperonni/Hawaiana, P/S = Peperonni/Suprema, P/M = Peperonni/Mexicana, Pas = Pastor, Jam = Jamón, Mex = Mexicana, Cub = Cubana. En esas casillas van las tortillas que quedan de cada especialidad; ya no se llenan a mano: la app las calcula sumando cuarto frío + cocina. El **INV de cada tortilla = suma de sus 13 especialidades**. DEV y Dev/Mer se llenan a mano.
+Las columnas de las tortillas son las especialidades de pizza: C = Sin quesear, Q = Queso, PP = Peperonni, H = Hawaiana, Sup = Suprema, 3C = 3 carnes, P/H = Peperonni/Hawaiana, P/S = Peperonni/Suprema, P/M = Peperonni/Mexicana, Pas = Pastor, Jam = Jamón, Mex = Mexicana, Cub = Cubana. En esas casillas van las tortillas que quedan de cada especialidad; ya no se llenan a mano: la app las calcula sumando cuarto frío + cocina. El **INV de cada tortilla = suma de sus 13 especialidades**. DEV y Dev/Mer se llenan a mano. En **Ingredientes** hay una columna **CF / COC** entre UM y Dev/Mer que muestra lo contado en cuarto frío y en cocina (ej. CF 5 kg, Coc 3 kg); el texto para compartir también incluye ese desglose.
 
 Desde la hoja puedes **guardarla en el Historial**, **compartirla** (texto listo para WhatsApp) o **copiarla**.
 

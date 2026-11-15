@@ -59,6 +59,7 @@
   table.inv th{background:#f5f5f4;font-size:11.5px;text-transform:uppercase}
   table.inv th.flv small{display:block;font-size:9.5px;font-weight:400;text-transform:none;line-height:1.2;white-space:normal}
   table.inv td.num,table.inv th.num{text-align:right}
+  table.inv td.parts{font-size:11.5px;line-height:1.35;white-space:nowrap;text-align:right}
   table.inv input{width:52px;padding:4px 3px;font-size:13px;text-align:right;border:1px solid #d6d3d1;border-radius:5px}
   table.inv input.wide{width:64px}
   .scrollx{overflow-x:auto}
@@ -434,7 +435,7 @@ function sheetTableHtml(rec,sec,readonly){
   const rows=PRODUCTS.filter(p=>p.sec===sec);
   let h='<h3 class="sec">'+sec+'</h3><div class="scrollx"><table class="inv"><thead><tr><th>Producto</th><th>UM</th>';
   if(sec==="TORTILLAS"){ FLAVORS.forEach(f=>{h+='<th class="flv"><b>'+f.code+'</b><small>'+esc(f.name)+'</small></th>';}); h+="<th>DEV</th>"; }
-  if(sec==="INGREDIENTES"){ h+="<th>Dev/Mer</th>"; }
+  if(sec==="INGREDIENTES"){ h+='<th class="num">CF / COC</th><th>Dev/Mer</th>'; }
   h+='<th class="num">INV</th><th class="num">KARDEX</th><th class="num">DIF</th></tr></thead><tbody>';
   rows.forEach(p=>{
     const inv=invTotal(rec,p.id);
@@ -453,6 +454,7 @@ function sheetTableHtml(rec,sec,readonly){
       h+='<td>'+(readonly?esc(dev):'<input type="number" min="0" step="1" inputmode="numeric" data-dev="'+p.id+'" value="'+esc(dev)+'">')+'</td>';
     }
     if(sec==="INGREDIENTES"){
+      h+='<td class="num parts">CF '+fmt(partTotal(rec,p.id,1))+'<br>Coc '+fmt(partTotal(rec,p.id,2))+'</td>';
       const dm=rec.devmer&&rec.devmer[p.id]!=null?rec.devmer[p.id]:"";
       h+='<td>'+(readonly?esc(dm):'<input type="number" min="0" step="0.01" inputmode="decimal" data-devmer="'+p.id+'" value="'+esc(dm)+'">')+'</td>';
     }
@@ -479,7 +481,7 @@ function renderSheet(){
     +'<tr><td><b>FECHA:</b> '+esc(hdr.fecha||"")+'</td><td><b>HORA:</b> '+esc(hdr.hora||"")+'</td></tr></table>'
     +'<div class="muted" style="text-align:right">Actualizado Junio 2025 Op</div></div>';
   SECTIONS.forEach(sec=>{ h+=sheetTableHtml(rec,sec,readonly); });
-  h+='<p class="note">Las columnas de Tortillas son las especialidades de pizza (C = Sin quesear, Q = Queso, PP = Peperonni, H = Hawaiana, Sup = Suprema, 3C = 3 carnes, P/H = Peperonni/Hawaiana, P/S = Peperonni/Suprema, P/M = Peperonni/Mexicana, Pas = Pastor, Jam = Jamón, Mex = Mexicana, Cub = Cubana). Cada celda = cajas × tortillas por caja + sueltas, sumando cuarto frío y cocina. Por caja: Sin quesear — Familiar 3, Chica 3, Canelo 1, Sartén 1; con especialidad — Familiar 2, Chica 2, Canelo 1, Sartén 1. Cada caja es de una sola especialidad. INV de tortillas = suma de las 13 especialidades. DEV y Dev/Mer se llenan a mano. DIF = INV − KARDEX.</p>'
+  h+='<p class="note">Las columnas de Tortillas son las especialidades de pizza (C = Sin quesear, Q = Queso, PP = Peperonni, H = Hawaiana, Sup = Suprema, 3C = 3 carnes, P/H = Peperonni/Hawaiana, P/S = Peperonni/Suprema, P/M = Peperonni/Mexicana, Pas = Pastor, Jam = Jamón, Mex = Mexicana, Cub = Cubana). Cada celda = cajas × tortillas por caja + sueltas, sumando cuarto frío y cocina. Por caja: Sin quesear — Familiar 3, Chica 3, Canelo 1, Sartén 1; con especialidad — Familiar 2, Chica 2, Canelo 1, Sartén 1. Cada caja es de una sola especialidad. INV de tortillas = suma de las 13 especialidades. DEV y Dev/Mer se llenan a mano. En Ingredientes, la columna CF / COC muestra lo contado en cuarto frío y en cocina por producto. DIF = INV − KARDEX.</p>'
     +'<div class="signs"><div>Firma del Gerente</div><div>Firma del Cajero</div><div>Firma del Gerente de zona / Auditor</div></div></div>';
   if(!readonly){
     h+='<button class="btn primary" id="btn-save-history">💾 Guardar en historial</button>';
@@ -546,7 +548,12 @@ function sheetText(rec){
     rows.forEach(p=>{
       const inv=invTotal(rec,p.id);
       const k=num(rec.kardex&&rec.kardex[p.id]);
-      L.push(p.name+": INV "+fmt(inv)+" | KARD "+fmt(k)+" | DIF "+fmt(inv-k));
+      if(sec==="INGREDIENTES"){
+        const um=(p.um||"").toLowerCase();
+        L.push(p.name+": CF "+fmt(partTotal(rec,p.id,1))+" "+um+" + Coc "+fmt(partTotal(rec,p.id,2))+" "+um+" = "+fmt(inv)+" "+um+" | KARD "+fmt(k)+" | DIF "+fmt(inv-k));
+      } else {
+        L.push(p.name+": INV "+fmt(inv)+" | KARD "+fmt(k)+" | DIF "+fmt(inv-k));
+      }
     });
   });
   return L.join("\n");
