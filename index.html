@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>QuesiHelper — Inventario del día</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:#fff7ef;color:#26221f;font-size:15px;line-height:1.4}
+  header{background:#b91c1c;color:#fff;padding:14px 16px 12px;position:sticky;top:0;z-index:20}
+  header h1{margin:0;font-size:20px;line-height:1.2}
+  header p{margin:2px 0 0;font-size:12.5px;opacity:.9}
+  nav{display:flex;gap:6px;padding:8px 10px;background:#7f1d1d;position:sticky;top:0;z-index:19}
+  nav button{flex:1;border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;border-radius:8px;padding:9px 4px;font-size:13.5px;cursor:pointer}
+  nav button.on{background:#fff;color:#7f1d1d;font-weight:700}
+  main{max-width:860px;margin:0 auto;padding:14px 12px 90px}
+  h2{font-size:17px;margin:6px 0 10px}
+  h3.sec{background:#e7e5e4;border:1px solid #d6d3d1;padding:6px 10px;margin:18px 0 0;font-size:14px;letter-spacing:.4px;text-transform:uppercase}
+  .card{background:#fff;border:1px solid #e7d9c8;border-radius:10px;padding:12px;margin:10px 0}
+  .muted{color:#78716c;font-size:13px}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  label.f{display:block;font-size:13px;color:#57534e;margin:10px 0 3px}
+  input[type=text],input[type=number],input[type=date],input[type=time],select{width:100%;padding:10px 9px;font-size:15px;border:1px solid #d6d3d1;border-radius:8px;background:#fff;color:#26221f}
+  input[type=number]{text-align:right}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  button.btn{display:block;width:100%;border:none;border-radius:10px;padding:13px;font-size:16px;font-weight:700;cursor:pointer;margin:12px 0 0}
+  button.primary{background:#b91c1c;color:#fff}
+  button.secondary{background:#e7e5e4;color:#26221f}
+  button.ghost{background:transparent;color:#b91c1c;border:1px solid #b91c1c;padding:9px;font-size:14px}
+  button.small{width:auto;display:inline-block;padding:7px 12px;font-size:13.5px;margin:0}
+  .prod{background:#fff;border:1px solid #e7d9c8;border-radius:10px;padding:10px 12px;margin:8px 0}
+  .prod-head{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+  .prod-head b{font-size:15px}
+  .um{color:#78716c;font-size:12.5px}
+  .tot{font-weight:700;color:#b91c1c;white-space:nowrap}
+  .tot small{color:#78716c;font-weight:400}
+  .fields{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+  .fields label{font-size:12.5px;color:#57534e;display:block}
+  .fields input{margin-top:2px}
+  .hint{font-size:12.5px;color:#b45309;margin-top:6px}
+  .parttabs{display:flex;gap:8px;margin:10px 0}
+  .parttabs button{flex:1;border:1px solid #b91c1c;background:#fff;color:#b91c1c;border-radius:10px;padding:11px;font-size:15px;font-weight:700;cursor:pointer}
+  .parttabs button.on{background:#b91c1c;color:#fff}
+  .sheet{background:#fff;border:1px solid #d6d3d1;padding:12px 10px}
+  .sheet-head{border:2px solid #44403c;padding:8px 10px;margin-bottom:10px}
+  .sheet-head .logo{text-align:right;font-weight:800;font-size:13px;line-height:1.1}
+  .sheet-head table{width:100%;border-collapse:collapse}
+  .sheet-head td{border:1px solid #a8a29e;padding:5px 7px;font-size:13.5px;width:50%}
+  .sheet-head td b{font-size:12px;color:#57534e}
+  table.inv{width:100%;border-collapse:collapse;margin:0 0 4px;font-size:13px}
+  table.inv th,table.inv td{border:1px solid #a8a29e;padding:4px 5px;text-align:left}
+  table.inv th{background:#f5f5f4;font-size:11.5px;text-transform:uppercase}
+  table.inv td.num,table.inv th.num{text-align:right}
+  table.inv input{width:52px;padding:4px 3px;font-size:13px;text-align:right;border:1px solid #d6d3d1;border-radius:5px}
+  table.inv input.wide{width:64px}
+  .scrollx{overflow-x:auto}
+  .signs{display:flex;gap:18px;margin-top:26px}
+  .signs div{flex:1;border-top:1px solid #44403c;padding-top:4px;font-size:12px;text-align:center;color:#57534e}
+  .note{font-size:12.5px;color:#78716c;margin:8px 0}
+  .hist-item{background:#fff;border:1px solid #e7d9c8;border-radius:10px;padding:12px;margin:10px 0}
+  .hist-item b{font-size:15px}
+  .cfg-prod{background:#fff;border:1px solid #e7d9c8;border-radius:10px;padding:10px 12px;margin:8px 0}
+  .cfg-prod .row{justify-content:space-between}
+  .check{display:flex;gap:8px;align-items:center;margin:8px 0;font-size:14px}
+  .check input{width:20px;height:20px;accent-color:#b91c1c}
+  #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#26221f;color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:50;max-width:92vw;text-align:center}
+  #toast.show{opacity:1}
+  .pill{display:inline-block;background:#fef3c7;color:#92400e;border-radius:20px;padding:2px 9px;font-size:12px;font-weight:700}
+</style>
+</head>
+<body>
+<header>
+  <h1>🍕 QuesiHelper</h1>
+  <p>Inventario del día · Fanáticos de la Pizza</p>
+</header>
+<nav id="nav">
+  <button data-view="count" class="on">Contar</button>
+  <button data-view="sheet">Hoja</button>
+  <button data-view="history">Historial</button>
+  <button data-view="config">Configuración</button>
+</nav>
+<main>
+  <section id="view-count"></section>
+  <section id="view-sheet" hidden></section>
+  <section id="view-history" hidden></section>
+  <section id="view-config" hidden></section>
+</main>
+<div id="toast"></div>
+<script>
+"use strict";
+/* ============ Datos de la hojita (Actualizado Junio 2025 Op) ============ */
+const SECTIONS=["CAJAS","TORTILLAS","INGREDIENTES","SALSAS","ADEREZOS","REFRESCOS","DESECHABLES"];
+const PRODUCTS=[
+ {id:"caja-familiar-qp",sec:"CAJAS",name:"Caja familiar QP",um:"Pieza"},
+ {id:"caja-chica",sec:"CAJAS",name:"Caja Chica",um:"Pieza"},
+ {id:"tortilla-familiar",sec:"TORTILLAS",name:"Tortilla Familiar",um:"Pieza"},
+ {id:"tortilla-chica",sec:"TORTILLAS",name:"Tortilla Chica",um:"Pieza"},
+ {id:"tortilla-canelo",sec:"TORTILLAS",name:"Tortilla Canelo",um:"Pieza"},
+ {id:"tortilla-sarten",sec:"TORTILLAS",name:"Tortilla Sartén",um:"Pieza"},
+ {id:"adobada-cocida",sec:"INGREDIENTES",name:"Adobada cocida",um:"KG"},
+ {id:"boneless",sec:"INGREDIENTES",name:"Boneless Porción",um:"Porción"},
+ {id:"cajeta",sec:"INGREDIENTES",name:"Cajeta",um:"KG"},
+ {id:"cebolla-morada",sec:"INGREDIENTES",name:"Cebolla morada",um:"KG"},
+ {id:"chorizo-cocido",sec:"INGREDIENTES",name:"Chorizo cocido",um:"KG"},
+ {id:"glaseado",sec:"INGREDIENTES",name:"Glaseado",um:"KG"},
+ {id:"goma-pasta",sec:"INGREDIENTES",name:"Goma para pasta",um:"KG"},
+ {id:"jalapeno",sec:"INGREDIENTES",name:"Jalapeño en salmuera",um:"KG"},
+ {id:"jamon",sec:"INGREDIENTES",name:"Jamón",um:"KG"},
+ {id:"mantequilla",sec:"INGREDIENTES",name:"Mantequilla preparada",um:"KG"},
+ {id:"pasta-pizza",sec:"INGREDIENTES",name:"Pasta p/ Pizza",um:"KG"},
+ {id:"pepperoni",sec:"INGREDIENTES",name:"Pepperoni",um:"KG"},
+ {id:"pina",sec:"INGREDIENTES",name:"Piña",um:"KG"},
+ {id:"queso",sec:"INGREDIENTES",name:"Queso",um:"KG"},
+ {id:"queso-crema",sec:"INGREDIENTES",name:"Queso Crema",um:"KG"},
+ {id:"salchicha-italiana",sec:"INGREDIENTES",name:"Salchicha italiana",um:"KG"},
+ {id:"salchicha-polaca",sec:"INGREDIENTES",name:"Salchicha polaca",um:"KG"},
+ {id:"tocino",sec:"INGREDIENTES",name:"Tocino cocido",um:"KG"},
+ {id:"salsa-habanera-sobre",sec:"SALSAS",name:"Salsa Habanera sobre",um:"Pieza"},
+ {id:"salsa-tradicional-sobre",sec:"SALSAS",name:"Salsa tradicional sobre",um:"Pieza"},
+ {id:"salsa-catsup-botella",sec:"SALSAS",name:"Salsa catsup botella",um:"Pieza"},
+ {id:"salsa-habanera-botella",sec:"SALSAS",name:"Salsa Habanera botella",um:"Pieza"},
+ {id:"salsa-tradicional-botella",sec:"SALSAS",name:"Salsa tradicional botella",um:"Pieza"},
+ {id:"aderezo-ranch",sec:"ADEREZOS",name:"Aderezo Ranch",um:"KG"},
+ {id:"aderezo-chipotle",sec:"ADEREZOS",name:"Aderezo chipotle",um:"KG"},
+ {id:"salsa-mango-habanero",sec:"ADEREZOS",name:"Salsa mango habanero",um:"KG"},
+ {id:"salsa-buffalo",sec:"ADEREZOS",name:"Salsa Buffalo",um:"KG"},
+ {id:"salsa-bbq",sec:"ADEREZOS",name:"Salsa BB,Q",um:"KG"},
+ {id:"pepsi-400",sec:"REFRESCOS",name:"Pepsi 400 ml",um:"Pieza"},
+ {id:"pepsi-600",sec:"REFRESCOS",name:"Pepsi 600 ml",um:"Pieza"},
+ {id:"sevenup-600",sec:"REFRESCOS",name:"7 Up 600 ml",um:"Pieza"},
+ {id:"manzana-600",sec:"REFRESCOS",name:"Manzana Sol 600 ml",um:"Pieza"},
+ {id:"lipton-600",sec:"REFRESCOS",name:"Lipton Te 600 ml",um:"Pieza"},
+ {id:"epura-jugo-330",sec:"REFRESCOS",name:"Epura Jugo 330 ml",um:"Pieza"},
+ {id:"epura-agua-1l",sec:"REFRESCOS",name:"Epura Agua 1 litro",um:"Pieza"},
+ {id:"pepsi-2l",sec:"REFRESCOS",name:"Pepsi 2 lts",um:"Pieza"},
+ {id:"sevenup-2l",sec:"REFRESCOS",name:"7 Up 2 lts",um:"Pieza"},
+ {id:"manzana-2l",sec:"REFRESCOS",name:"Manzana Sol 2 lts",um:"Pieza"},
+ {id:"domo-negro",sec:"DESECHABLES",name:"Domo negro c/ tapa",um:"PZA"},
+ {id:"tenedor",sec:"DESECHABLES",name:"Tenedor desechable",um:"PZA"},
+ {id:"contenedor-2oz",sec:"DESECHABLES",name:"Contenedor 2 oz sufle",um:"PZA"},
+ {id:"tapa-contenedor-2oz",sec:"DESECHABLES",name:"Tapa contenedor 2 oz",um:"PZA"},
+ {id:"vaso-animado",sec:"DESECHABLES",name:"Vaso animado ICEE",um:"PZA"},
+ {id:"vaso-regular",sec:"DESECHABLES",name:"Vaso regular ICEE",um:"PZA"},
+ {id:"popote",sec:"DESECHABLES",name:"Popote",um:"PZA"},
+ {id:"tapa-domo",sec:"DESECHABLES",name:"Tapa domo Pet",um:"PZA"}
+];
+const FLAVORS=["C","Q","PP","H","Sup","3C","P/H","P/S","P/M","Pas","Jam","Mex","Cub"];
+const LS="quesihelper_v1";
+
+/* ============ Configuración por defecto ============ */
+const TORTILLAS_PER_BOX={"tortilla-familiar":3,"tortilla-chica":3,"tortilla-canelo":1,"tortilla-sarten":1};
+function defaultCfg(){
+  const c={};
+  PRODUCTS.forEach(p=>{
+    if(p.sec==="TORTILLAS") c[p.id]={group:"contable",inPackage:true,qtyPerPackage:TORTILLAS_PER_BOX[p.id],envSize:null,envUnit:"kg",useTare:false,tareWeight:null};
+    else if(p.sec==="INGREDIENTES"||p.sec==="ADEREZOS") c[p.id]={group:"nocontable",inPackage:false,qtyPerPackage:null,envSize:null,envUnit:(p.id==="boneless"?"porción":"kg"),useTare:(p.id==="queso"),tareWeight:null};
+    else c[p.id]={group:"contable",inPackage:false,qtyPerPackage:null,envSize:null,envUnit:"kg",useTare:false,tareWeight:null};
+  });
+  return c;
+}
+
+/* ============ Estado ============ */
+let S={cfg:defaultCfg(),history:[],draft:null};
+let ui={view:"count",part:1,histId:null};
+function load(){
+  try{
+    const raw=localStorage.getItem(LS);
+    if(raw){
+      const d=JSON.parse(raw);
+      if(d&&typeof d==="object"){
+        if(d.cfg) S.cfg=Object.assign(defaultCfg(),d.cfg);
+        if(Array.isArray(d.history)) S.history=d.history;
+        if(d.draft) S.draft=d.draft;
+      }
+    }
+  }catch(e){}
+}
+function save(){ try{localStorage.setItem(LS,JSON.stringify(S));}catch(e){} }
+function num(v){const n=parseFloat(v);return isNaN(n)?0:n;}
+function fmt(n){if(!isFinite(n))n=0;const r=Math.round(n*100)/100;return String(r);}
+function isoDate(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+function hhmm(d){return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");}
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove("show"),2600);}
+function newDraft(){
+  const now=new Date();
+  return {header:{sucursal:"",turno:"",fecha:isoDate(now),hora:hhmm(now)},parts:{"1":{},"2":{}},kardex:{},flavors:{},dev:{},devmer:{},createdAt:Date.now()};
+}
+function currentRec(){ return ui.histId? S.history.find(h=>h.id===ui.histId)||null : S.draft; }
+
+/* ============ Cálculos ============ */
+function partTotal(rec,pid,part){
+  if(!rec) return 0;
+  const cfg=S.cfg[pid]; if(!cfg) return 0;
+  const d=(rec.parts[String(part)]&&rec.parts[String(part)][pid])||{};
+  if(cfg.group==="contable"){
+    if(cfg.inPackage) return num(d.cajas)*num(cfg.qtyPerPackage)+num(d.sueltas);
+    return num(d.piezas);
+  }
+  let t=0;
+  if(num(cfg.envSize)>0) t+=num(d.envases)*num(cfg.envSize);
+  t+=num(d.sueltos);
+  if(cfg.useTare && d.bascula!=null && d.bascula!=="") t+=Math.max(0,num(d.bascula)-num(cfg.tareWeight));
+  return t;
+}
+function invTotal(rec,pid){ return partTotal(rec,pid,1)+partTotal(rec,pid,2); }
+function difOf(rec,pid){ return invTotal(rec,pid)-num(rec.kardex?rec.kardex[pid]:0); }
+function hasData(rec,pid){
+  if(invTotal(rec,pid)!==0) return true;
+  if(num(rec.kardex&&rec.kardex[pid])!==0) return true;
+  const fl=rec.flavors&&rec.flavors[pid]; if(fl&&Object.keys(fl).some(k=>num(fl[k])!==0)) return true;
+  if(num(rec.dev&&rec.dev[pid])!==0) return true;
+  if(num(rec.devmer&&rec.devmer[pid])!==0) return true;
+  return false;
+}
+function countedInPart(rec,part){
+  let n=0;
+  PRODUCTS.forEach(p=>{ if(partTotal(rec,p.id,part)!==0) n++; });
+  return n;
+}
+</script>
+<script>
+"use strict";
+/* ============ Navegación ============ */
+function show(view){
+  ui.view=view;
+  document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("on",b.dataset.view===view));
+  ["count","sheet","history","config"].forEach(v=>{
+    document.getElementById("view-"+v).hidden=(v!==view);
+  });
+  if(view==="count") renderCount();
+  if(view==="sheet") renderSheet();
+  if(view==="history") renderHistory();
+  if(view==="config") renderConfig();
+  window.scrollTo(0,0);
+}
+document.getElementById("nav").addEventListener("click",e=>{
+  const b=e.target.closest("button[data-view]");
+  if(b) show(b.dataset.view);
+});
+
+/* ============ Vista Contar ============ */
+function countInputsHtml(pid,part){
+  const cfg=S.cfg[pid];
+  const d=(S.draft.parts[String(part)]&&S.draft.parts[String(part)][pid])||{};
+  const v=(f)=>esc(d[f]==null?"":d[f]);
+  if(cfg.group==="contable"&&cfg.inPackage){
+    const noQty=num(cfg.qtyPerPackage)<=0;
+    return '<div class="fields">'
+      +'<label>Cajas / paquetes'+(noQty?' <span class="hint">(configura la cantidad por paquete)</span>':'')+'<input type="number" min="0" step="1" inputmode="numeric" data-pid="'+pid+'" data-field="cajas" data-part="'+part+'" value="'+v("cajas")+'" '+(noQty?"disabled":"")+'>'+(noQty?"":"")+'</label>'
+      +'<label>Sueltas<input type="number" min="0" step="1" inputmode="numeric" data-pid="'+pid+'" data-field="sueltas" data-part="'+part+'" value="'+v("sueltas")+'"></label>'
+      +'</div>'
+      +'<div class="hint">Total: '+num(cfg.qtyPerPackage)+' por caja × cajas + sueltas.</div>';
+  }
+  if(cfg.group==="contable"){
+    return '<div class="fields"><label>Piezas<input type="number" min="0" step="1" inputmode="numeric" data-pid="'+pid+'" data-field="piezas" data-part="'+part+'" value="'+v("piezas")+'"></label></div>';
+  }
+  const noEnv=num(cfg.envSize)<=0;
+  let h='<div class="fields">'
+    +'<label>Envases / bolsas'+(noEnv?' <span class="hint">(sin tamaño configurado)</span>':'')+'<input type="number" min="0" step="1" inputmode="numeric" data-pid="'+pid+'" data-field="envases" data-part="'+part+'" value="'+v("envases")+'" '+(noEnv?"disabled":"")+'>'+'</label>'
+    +'<label>Kg sueltos (opcional)<input type="number" min="0" step="0.01" inputmode="decimal" data-pid="'+pid+'" data-field="sueltos" data-part="'+part+'" value="'+v("sueltos")+'"></label>';
+  if(cfg.useTare){
+    h+='<label>Peso en báscula (con recipiente)<input type="number" min="0" step="0.01" inputmode="decimal" data-pid="'+pid+'" data-field="bascula" data-part="'+part+'" value="'+v("bascula")+'"></label>';
+  }
+  h+='</div>';
+  h+='<div class="hint">Total: envases × '+fmt(num(cfg.envSize))+' '+(cfg.envUnit||"kg")+' + kg sueltos'+(cfg.useTare?' + (báscula − recipiente '+fmt(num(cfg.tareWeight))+' kg)':'')+'.</div>';
+  if(noEnv) h+='<div class="hint">Configura el tamaño del envase en Configuración para poder contar bolsas.</div>';
+  return h;
+}
+function renderCount(){
+  const el=document.getElementById("view-count");
+  if(!S.draft){
+    el.innerHTML='<h2>Nuevo inventario del día</h2>'
+      +'<div class="card"><p class="muted">Llena el encabezado y empieza el conteo. Primero el <b>cuarto frío</b> y después la <b>cocina</b> (el refri es de la cocina). En cada parte aparecen todos los productos, por si las moscas.</p>'
+      +'<label class="f">Sucursal</label><input type="text" id="h-sucursal" placeholder="Ej. Lerdo centro">'
+      +'<label class="f">Turno</label><input type="text" id="h-turno" placeholder="Ej. Matutino">'
+      +'<div class="grid2"><div><label class="f">Fecha</label><input type="date" id="h-fecha" value="'+esc(isoDate(new Date()))+'"></div>'
+      +'<div><label class="f">Hora</label><input type="time" id="h-hora" value="'+esc(hhmm(new Date()))+'"></div></div>'
+      +'<button class="btn primary" id="btn-start">Empezar conteo → Cuarto frío</button>'
+      +'<p class="note">Antes de contar, revisa en <b>Configuración</b> que cada insumo tenga su método de conteo (paquetes, envases y recipientes).</p></div>';
+    document.getElementById("btn-start").addEventListener("click",()=>{
+      S.draft=newDraft();
+      S.draft.header.sucursal=document.getElementById("h-sucursal").value.trim();
+      S.draft.header.turno=document.getElementById("h-turno").value.trim();
+      S.draft.header.fecha=document.getElementById("h-fecha").value||isoDate(new Date());
+      S.draft.header.hora=document.getElementById("h-hora").value||hhmm(new Date());
+      ui.part=1; save(); renderCount();
+      toast("Conteo iniciado · Cuarto frío");
+    });
+    return;
+  }
+  const part=ui.part;
+  const partName=part===1?"Cuarto frío":"Cocina";
+  const unconfigured=PRODUCTS.filter(p=>S.cfg[p.id].group==="nocontable"&&num(S.cfg[p.id].envSize)<=0).length;
+  let h='<h2>Conteo · '+partName+'</h2>'
+    +'<div class="parttabs"><button data-part="1" class="'+(part===1?"on":"")+'">1 · Cuarto frío</button><button data-part="2" class="'+(part===2?"on":"")+'">2 · Cocina</button></div>'
+    +'<p class="muted">'+esc(S.draft.header.sucursal||"Sin sucursal")+' · '+esc(S.draft.header.turno||"Sin turno")+' · '+esc(S.draft.header.fecha)+' '+esc(S.draft.header.hora)+' · <span id="count-progress"></span></p>'
+    +(unconfigured?'<p class="hint">⚠️ '+unconfigured+' insumo(s) sin tamaño de envase — configúralos en Configuración para poder contar bolsas.</p>':"")
+    +'<div id="count-list">';
+  SECTIONS.forEach(sec=>{
+    h+='<h3 class="sec">'+sec+'</h3>';
+    PRODUCTS.filter(p=>p.sec===sec).forEach(p=>{
+      h+='<div class="prod" data-prod="'+p.id+'"><div class="prod-head"><span><b>'+esc(p.name)+'</b> <span class="um">'+esc(p.um)+'</span></span><span class="tot" data-tot="'+p.id+'">'+fmt(partTotal(S.draft,p.id,part))+' <small>'+esc(p.um)+'</small></span></div>'
+        +countInputsHtml(p.id,part)+'</div>';
+    });
+  });
+  h+='</div>';
+  if(part===1) h+='<button class="btn primary" id="btn-next-part">Siguiente → Cocina</button>';
+  else h+='<button class="btn primary" id="btn-to-sheet">Ver hoja final →</button>';
+  h+='<button class="btn secondary" id="btn-view-sheet">Ver hoja (con lo que llevo)</button>';
+  h+='<button class="btn ghost" id="btn-discard">Descartar borrador</button>';
+  el.innerHTML=h;
+  el.querySelectorAll(".parttabs button").forEach(b=>b.addEventListener("click",()=>{ui.part=parseInt(b.dataset.part,10);renderCount();}));
+  const nb=document.getElementById("btn-next-part");
+  if(nb) nb.addEventListener("click",()=>{ui.part=2;save();renderCount();window.scrollTo(0,0);});
+  const ts=document.getElementById("btn-to-sheet");
+  if(ts) ts.addEventListener("click",()=>{save();show("sheet");});
+  document.getElementById("btn-view-sheet").addEventListener("click",()=>{save();show("sheet");});
+  document.getElementById("btn-discard").addEventListener("click",()=>{
+    if(confirm("¿Descartar el borrador de este conteo? Se pierde lo capturado.")){S.draft=null;save();renderCount();}
+  });
+  updateCountProgress();
+}
+function updateCountProgress(){
+  const el=document.getElementById("count-progress");
+  if(!el||!S.draft) return;
+  const part=ui.part;
+  el.textContent="Contados en esta parte: "+countedInPart(S.draft,part)+"/"+PRODUCTS.length;
+  document.querySelectorAll("[data-tot]").forEach(sp=>{
+    const pid=sp.dataset.tot;
+    const p=PRODUCTS.find(x=>x.id===pid);
+    sp.innerHTML=fmt(partTotal(S.draft,pid,part))+" <small>"+esc(p.um)+"</small>";
+  });
+}
+document.getElementById("view-count").addEventListener("input",e=>{
+  const inp=e.target.closest("input[data-pid]");
+  if(!inp||!S.draft) return;
+  const pid=inp.dataset.pid, field=inp.dataset.field, part=inp.dataset.part;
+  if(!S.draft.parts[part]) S.draft.parts[part]={};
+  if(!S.draft.parts[part][pid]) S.draft.parts[part][pid]={};
+  S.draft.parts[part][pid][field]=inp.value;
+  save();
+  updateCountProgress();
+});
+
+/* ============ Vista Hoja final ============ */
+function sheetTableHtml(rec,sec,readonly){
+  const rows=PRODUCTS.filter(p=>p.sec===sec);
+  let h='<h3 class="sec">'+sec+'</h3><div class="scrollx"><table class="inv"><thead><tr><th>Producto</th><th>UM</th>';
+  if(sec==="TORTILLAS"){ FLAVORS.forEach(f=>{h+="<th>"+f+"</th>";}); h+="<th>DEV</th>"; }
+  if(sec==="INGREDIENTES"){ h+="<th>Dev/Mer</th>"; }
+  h+='<th class="num">INV</th><th class="num">KARDEX</th><th class="num">DIF</th></tr></thead><tbody>';
+  rows.forEach(p=>{
+    const inv=invTotal(rec,p.id);
+    const k=num(rec.kardex&&rec.kardex[p.id]);
+    const dif=inv-k;
+    h+='<tr data-row="'+p.id+'"><td>'+esc(p.name)+'</td><td>'+esc(p.um)+'</td>';
+    if(sec==="TORTILLAS"){
+      FLAVORS.forEach(f=>{
+        const val=rec.flavors&&rec.flavors[p.id]?rec.flavors[p.id][f]:"";
+        h+='<td>'+(readonly?esc(val===""?"":val):'<input type="number" min="0" step="1" inputmode="numeric" data-flavor="'+p.id+'" data-col="'+f+'" value="'+esc(val)+'">')+'</td>';
+      });
+      const dev=rec.dev&&rec.dev[p.id]!=null?rec.dev[p.id]:"";
+      h+='<td>'+(readonly?esc(dev):'<input type="number" min="0" step="1" inputmode="numeric" data-dev="'+p.id+'" value="'+esc(dev)+'">')+'</td>';
+    }
+    if(sec==="INGREDIENTES"){
+      const dm=rec.devmer&&rec.devmer[p.id]!=null?rec.devmer[p.id]:"";
+      h+='<td>'+(readonly?esc(dm):'<input type="number" min="0" step="0.01" inputmode="decimal" data-devmer="'+p.id+'" value="'+esc(dm)+'">')+'</td>';
+    }
+    h+='<td class="num"><b>'+fmt(inv)+'</b></td>';
+    h+='<td class="num">'+(readonly?esc(k===0?"":fmt(k)):'<input type="number" step="0.01" inputmode="decimal" data-kardex="'+p.id+'" value="'+(k===0?"":esc(fmt(k)))+'">')+'</td>';
+    h+='<td class="num" data-dif="'+p.id+'"><b>'+fmt(dif)+'</b></td></tr>';
+  });
+  h+='</tbody></table></div>';
+  return h;
+}
+function renderSheet(){
+  const el=document.getElementById("view-sheet");
+  const rec=currentRec();
+  if(!rec){
+    el.innerHTML='<h2>Hoja final</h2><div class="card"><p class="muted">Aún no hay un conteo. Ve a <b>Contar</b> para empezar el inventario del día.</p><button class="btn primary" id="btn-goto-count">Ir a contar</button></div>';
+    document.getElementById("btn-goto-count").addEventListener("click",()=>show("count"));
+    return;
+  }
+  const readonly=!!ui.histId;
+  const hdr=rec.header||{};
+  let h='<h2>Hoja final'+(readonly?' · guardada':"")+'</h2>'
+    +'<div class="sheet"><div class="sheet-head"><div class="logo">FANÁTICOS<br>DE LA<br>PIZZA</div>'
+    +'<table><tr><td><b>SUCURSAL:</b> '+esc(hdr.sucursal||"")+'</td><td><b>TURNO:</b> '+esc(hdr.turno||"")+'</td></tr>'
+    +'<tr><td><b>FECHA:</b> '+esc(hdr.fecha||"")+'</td><td><b>HORA:</b> '+esc(hdr.hora||"")+'</td></tr></table>'
+    +'<div class="muted" style="text-align:right">Actualizado Junio 2025 Op</div></div>';
+  SECTIONS.forEach(sec=>{ h+=sheetTableHtml(rec,sec,readonly); });
+  h+='<p class="note">Las columnas de sabores de Tortillas (C, Q, PP, H, Sup, 3C, P/H, P/S, P/M, Pas, Jam, Mex, Cub), DEV y Dev/Mer se llenan a mano en la hoja; la app no calcula su significado. DIF = INV − KARDEX.</p>'
+    +'<div class="signs"><div>Firma del Gerente</div><div>Firma del Cajero</div><div>Firma del Gerente de zona / Auditor</div></div></div>';
+  if(!readonly){
+    h+='<button class="btn primary" id="btn-save-history">💾 Guardar en historial</button>';
+  }
+  h+='<button class="btn secondary" id="btn-share">📤 Compartir hoja</button>'
+    +'<button class="btn secondary" id="btn-copy">📋 Copiar hoja</button>';
+  if(readonly) h+='<button class="btn ghost" id="btn-back-history">← Volver al historial</button>';
+  else h+='<button class="btn ghost" id="btn-back-count">← Volver al conteo</button>';
+  el.innerHTML=h;
+  const sh=document.getElementById("btn-save-history");
+  if(sh) sh.addEventListener("click",saveToHistory);
+  document.getElementById("btn-share").addEventListener("click",shareSheet);
+  document.getElementById("btn-copy").addEventListener("click",copySheet);
+  const bk=document.getElementById("btn-back-history");
+  if(bk) bk.addEventListener("click",()=>{ui.histId=null;show("history");});
+  const bc=document.getElementById("btn-back-count");
+  if(bc) bc.addEventListener("click",()=>show("count"));
+}
+document.getElementById("view-sheet").addEventListener("input",e=>{
+  const inp=e.target;
+  if(ui.histId||!S.draft) return;
+  if(inp.dataset.kardex!=null){
+    if(!S.draft.kardex) S.draft.kardex={};
+    S.draft.kardex[inp.dataset.kardex]=inp.value;
+    save();
+    const pid=inp.dataset.kardex;
+    const cell=document.querySelector('[data-dif="'+pid+'"]');
+    if(cell) cell.innerHTML="<b>"+fmt(difOf(S.draft,pid))+"</b>";
+  } else if(inp.dataset.flavor!=null){
+    if(!S.draft.flavors) S.draft.flavors={};
+    if(!S.draft.flavors[inp.dataset.flavor]) S.draft.flavors[inp.dataset.flavor]={};
+    S.draft.flavors[inp.dataset.flavor][inp.dataset.col]=inp.value;
+    save();
+  } else if(inp.dataset.dev!=null){
+    if(!S.draft.dev) S.draft.dev={};
+    S.draft.dev[inp.dataset.dev]=inp.value;
+    save();
+  } else if(inp.dataset.devmer!=null){
+    if(!S.draft.devmer) S.draft.devmer={};
+    S.draft.devmer[inp.dataset.devmer]=inp.value;
+    save();
+  }
+});
+function saveToHistory(){
+  if(!S.draft) return;
+  const rec=JSON.parse(JSON.stringify(S.draft));
+  rec.id="inv-"+Date.now();
+  rec.savedAt=Date.now();
+  S.history.unshift(rec);
+  S.draft=null;
+  save();
+  toast("Inventario guardado en el historial");
+  show("history");
+}
+
+/* ============ Compartir / copiar ============ */
+function sheetText(rec){
+  if(!rec) return "";
+  const hdr=rec.header||{};
+  const L=[];
+  L.push("🍕 INVENTARIO DEL DÍA — Fanáticos de la Pizza");
+  L.push("Sucursal: "+(hdr.sucursal||"-")+" | Turno: "+(hdr.turno||"-"));
+  L.push("Fecha: "+(hdr.fecha||"-")+" | Hora: "+(hdr.hora||"-"));
+  SECTIONS.forEach(sec=>{
+    const rows=PRODUCTS.filter(p=>p.sec===sec&&hasData(rec,p.id));
+    if(!rows.length) return;
+    L.push("");
+    L.push("— "+sec+" —");
+    rows.forEach(p=>{
+      const inv=invTotal(rec,p.id);
+      const k=num(rec.kardex&&rec.kardex[p.id]);
+      L.push(p.name+": INV "+fmt(inv)+" | KARD "+fmt(k)+" | DIF "+fmt(inv-k));
+    });
+  });
+  return L.join("\n");
+}
+function copyText(t,msg){
+  const done=()=>toast(msg||"Copiado");
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(done).catch(()=>fallbackCopy(t,done));
+  } else fallbackCopy(t,done);
+}
+function fallbackCopy(t,done){
+  const ta=document.createElement("textarea");
+  ta.value=t; document.body.appendChild(ta); ta.select();
+  try{document.execCommand("copy");done();}catch(e){toast("No se pudo copiar");}
+  ta.remove();
+}
+function shareSheet(){
+  const rec=currentRec(); if(!rec) return;
+  const t=sheetText(rec);
+  if(navigator.share){
+    navigator.share({title:"Inventario del día",text:t}).catch(()=>{});
+  } else {
+    copyText(t,"Copiado — pégalo en WhatsApp");
+  }
+}
+function copySheet(){
+  const rec=currentRec(); if(!rec) return;
+  copyText(sheetText(rec),"Hoja copiada");
+}
+
+/* ============ Vista Historial ============ */
+function renderHistory(){
+  const el=document.getElementById("view-history");
+  let h="<h2>Historial</h2>";
+  if(!S.history.length){
+    h+='<div class="card"><p class="muted">Aún no hay inventarios guardados. Cuando termines un conteo, guárdalo desde la <b>Hoja final</b>.</p></div>';
+  }
+  S.history.forEach(rec=>{
+    const hdr=rec.header||{};
+    const counted=PRODUCTS.filter(p=>invTotal(rec,p.id)!==0).length;
+    h+='<div class="hist-item"><b>'+esc(hdr.fecha||"Sin fecha")+' · '+esc(hdr.turno||"Sin turno")+'</b><br>'
+      +'<span class="muted">'+esc(hdr.sucursal||"Sin sucursal")+' · '+esc(hdr.hora||"")+' · '+counted+' productos con inventario</span>'
+      +'<div class="row" style="margin-top:8px"><button class="btn small primary" data-view-hist="'+rec.id+'">Ver hoja</button>'
+      +'<button class="btn small ghost" data-del-hist="'+rec.id+'">Borrar</button></div></div>';
+  });
+  el.innerHTML=h;
+  el.querySelectorAll("[data-view-hist]").forEach(b=>b.addEventListener("click",()=>{
+    ui.histId=b.dataset.viewHist; show("sheet");
+  }));
+  el.querySelectorAll("[data-del-hist]").forEach(b=>b.addEventListener("click",()=>{
+    if(confirm("¿Borrar este inventario guardado?")){
+      S.history=S.history.filter(r=>r.id!==b.dataset.delHist);
+      save(); renderHistory(); toast("Inventario borrado");
+    }
+  }));
+}
+
+/* ============ Vista Configuración ============ */
+function cfgGroupDefaults(group){
+  if(group==="contable") return {group:"contable",inPackage:false,qtyPerPackage:null,envSize:null,envUnit:"kg",useTare:false,tareWeight:null};
+  return {group:"nocontable",inPackage:false,qtyPerPackage:null,envSize:null,envUnit:"kg",useTare:false,tareWeight:null};
+}
+function renderConfig(){
+  const el=document.getElementById("view-config");
+  let h="<h2>Configuración de insumos</h2>"
+    +'<p class="muted">Los valores se ponen una vez y quedan guardados hasta que los cambies aquí. Mover un insumo de grupo reinicia su método de conteo.</p>';
+  ["contable","nocontable"].forEach(group=>{
+    const list=PRODUCTS.filter(p=>S.cfg[p.id].group===group);
+    h+='<h3 class="sec">'+(group==="contable"?"Contables":"No contables")+' ('+list.length+')</h3>';
+    list.forEach(p=>{
+      const c=S.cfg[p.id];
+      h+='<div class="cfg-prod" data-cfg="'+p.id+'"><div class="row"><span><b>'+esc(p.name)+'</b> <span class="um">'+esc(p.um)+'</span></span>'
+        +'<button class="btn small ghost" data-move="'+p.id+'">→ '+(group==="contable"?"No contables":"Contables")+'</button></div>';
+      if(group==="contable"){
+        h+='<label class="check"><input type="checkbox" data-cfg-field="inPackage" data-pid="'+p.id+'" '+(c.inPackage?"checked":"")+'> Viene en paquete</label>';
+        if(c.inPackage){
+          h+='<label class="f">Cantidad por paquete</label><input type="number" min="1" step="1" inputmode="numeric" data-cfg-field="qtyPerPackage" data-pid="'+p.id+'" value="'+esc(c.qtyPerPackage==null?"":c.qtyPerPackage)+'">';
+        }
+      } else {
+        h+='<div class="grid2"><div><label class="f">Peso o litros del envase</label><input type="number" min="0" step="0.01" inputmode="decimal" data-cfg-field="envSize" data-pid="'+p.id+'" value="'+esc(c.envSize==null?"":c.envSize)+'"></div>'
+          +'<div><label class="f">Unidad</label><select data-cfg-field="envUnit" data-pid="'+p.id+'">'
+          +["kg","l","porción"].map(u=>'<option value="'+u+'" '+(c.envUnit===u?"selected":"")+'>'+u+'</option>').join("")+'</select></div></div>'
+          +'<label class="check"><input type="checkbox" data-cfg-field="useTare" data-pid="'+p.id+'" '+(c.useTare?"checked":"")+'> Agregar peso del recipiente</label>';
+        if(c.useTare){
+          h+='<label class="f">Peso del recipiente (kg)</label><input type="number" min="0" step="0.01" inputmode="decimal" data-cfg-field="tareWeight" data-pid="'+p.id+'" value="'+esc(c.tareWeight==null?"":c.tareWeight)+'">';
+        }
+      }
+      h+='</div>';
+    });
+  });
+  h+='<button class="btn secondary" id="btn-reset-cfg">Restablecer valores iniciales</button>';
+  el.innerHTML=h;
+  el.querySelectorAll("[data-move]").forEach(b=>b.addEventListener("click",()=>{
+    const pid=b.dataset.move;
+    const ng=S.cfg[pid].group==="contable"?"nocontable":"contable";
+    const keepUnit=S.cfg[pid].envUnit;
+    S.cfg[pid]=cfgGroupDefaults(ng);
+    if(ng==="nocontable") S.cfg[pid].envUnit=keepUnit||"kg";
+    save(); renderConfig();
+    toast("Insumo movido a "+(ng==="contable"?"Contables":"No contables"));
+  }));
+  document.getElementById("btn-reset-cfg").addEventListener("click",()=>{
+    if(confirm("¿Restablecer todos los insumos a los valores iniciales?")){
+      S.cfg=defaultCfg(); save(); renderConfig(); toast("Configuración restablecida");
+    }
+  });
+}
+document.getElementById("view-config").addEventListener("input",e=>{
+  const inp=e.target.closest("[data-cfg-field]");
+  if(!inp) return;
+  const pid=inp.dataset.pid, f=inp.dataset.cfgField;
+  if(f==="inPackage"||f==="useTare"){
+    S.cfg[pid][f]=inp.checked;
+    if(f==="inPackage"&&inp.checked&&S.cfg[pid].qtyPerPackage==null) S.cfg[pid].qtyPerPackage=1;
+    if(f==="useTare"&&inp.checked&&S.cfg[pid].tareWeight==null) S.cfg[pid].tareWeight=0;
+    save(); renderConfig();
+  } else if(f==="envUnit"){
+    S.cfg[pid][f]=inp.value; save();
+  } else {
+    S.cfg[pid][f]=(inp.value===""?null:inp.value); save();
+  }
+});
+document.getElementById("view-config").addEventListener("change",e=>{
+  const inp=e.target.closest("[data-cfg-field]");
+  if(!inp) return;
+  if(inp.dataset.cfgField==="inPackage"||inp.dataset.cfgField==="useTare"){
+    S.cfg[inp.dataset.pid][inp.dataset.cfgField]=inp.checked;
+    save(); renderConfig();
+  } else if(inp.dataset.cfgField==="envUnit"){
+    S.cfg[inp.dataset.pid].envUnit=inp.value; save();
+  }
+});
+
+/* ============ Inicio ============ */
+load();
+show("count");
+window.QH={get S(){return S;},PRODUCTS,SECTIONS,FLAVORS,partTotal,invTotal,difOf,fmt,defaultCfg,sheetText,show,renderCount,renderSheet,renderHistory,renderConfig};
+</script>
+</body>
+</html>
