@@ -201,7 +201,7 @@ const FLAVORS=[
 const LS="quesihelper_v1";
 
 /* ============ Configuración por defecto ============ */
-const TORTILLA_PER_BOX_PLAIN={"tortilla-familiar":3,"tortilla-chica":3,"tortilla-canelo":1,"tortilla-sarten":1};
+const TORTILLA_PER_BOX_PLAIN={"tortilla-familiar":3,"tortilla-chica":2,"tortilla-canelo":1,"tortilla-sarten":1};
 const TORTILLA_PER_BOX_ESP={"tortilla-familiar":2,"tortilla-chica":2,"tortilla-canelo":1,"tortilla-sarten":1};
 function defaultCfg(){
   const c={};
@@ -239,6 +239,11 @@ function load(){
       c.bagTypes=num(c.envSize)>0?[{name:"",size:num(c.envSize)}]:[];
     }
   });
+  // Corrección 2026-11-15: la Chica sin quesear son 2 por caja, no 3
+  // (Alejandro confirmó que se confundió al validar la matriz; la gerenta
+  // multiplicaba por 2). Las configs guardadas con el default viejo (3)
+  // migran a 2: él nunca puso el 3 a mano a propósito.
+  if(S.cfg["tortilla-chica"]&&num(S.cfg["tortilla-chica"].qtyPerPackage)===3) S.cfg["tortilla-chica"].qtyPerPackage=2;
 }
 function save(){ try{localStorage.setItem(LS,JSON.stringify(S));}catch(e){} }
 function num(v){const n=parseFloat(v);return isNaN(n)?0:n;}
@@ -279,6 +284,32 @@ function partHasFlavors(rec,pid,part){
   if(!d||!d.flavors) return false;
   return FLAVORS.some(f=>{const x=d.flavors[f.code];return x&&(num(x.cajas)!==0||num(x.sueltas)!==0);});
 }
+/* Cajas que hay de un tipo de tortilla en una parte: suma de las cajas por
+   especialidad + 1 por cada celda (especialidad) con sueltas > 0, porque la
+   caja parcial que guarda esas sueltas también es una caja. */
+function boxesOfTypePart(rec,pid,part){
+  if(!rec) return 0;
+  const d=(rec.parts[String(part)]&&rec.parts[String(part)][pid])||{};
+  if(partHasFlavors(rec,pid,part)){
+    const fl=d.flavors||{};
+    return FLAVORS.reduce((a,f)=>{
+      const x=fl[f.code]||{};
+      return a+num(x.cajas)+(num(x.sueltas)>0?1:0);
+    },0);
+  }
+  // Compatibilidad con borradores de v1 (conteo general por cajas)
+  return num(d.cajas)+(num(d.sueltas)>0?1:0);
+}
+/* Las cajas se calculan solas de las tortillas, como las cuenta la gerenta:
+   la familiar suma las cajas de Tortilla Familiar y Tortilla Sartén (la
+   sartén se empaca en caja familiar); la chica suma las de Tortilla Chica
+   y Tortilla Canelo (el canelo se empaca en caja chica). */
+function cajasFamiliarTotal(rec){
+  return [1,2].reduce((a,part)=>a+boxesOfTypePart(rec,"tortilla-familiar",part)+boxesOfTypePart(rec,"tortilla-sarten",part),0);
+}
+function cajasChicaTotal(rec){
+  return [1,2].reduce((a,part)=>a+boxesOfTypePart(rec,"tortilla-chica",part)+boxesOfTypePart(rec,"tortilla-canelo",part),0);
+}
 /* Tipos de bolsa de un no contable. Config vieja (un solo envase) migra a
    un tipo de bolsa con ese peso. */
 function bagTypesOf(cfg){
@@ -291,6 +322,10 @@ function partTotal(rec,pid,part){
   const cfg=S.cfg[pid]; if(!cfg) return 0;
   const d=(rec.parts[String(part)]&&rec.parts[String(part)][pid])||{};
   const p=PRODUCTS.find(x=>x.id===pid);
+  // Las cajas se calculan solas de las tortillas (no se cuentan a mano):
+  // los valores manuales viejos de cajas se ignoran para estos totales.
+  if(pid==="caja-familiar-qp") return boxesOfTypePart(rec,"tortilla-familiar",part)+boxesOfTypePart(rec,"tortilla-sarten",part);
+  if(pid==="caja-chica") return boxesOfTypePart(rec,"tortilla-chica",part)+boxesOfTypePart(rec,"tortilla-canelo",part);
   if(p&&p.sec==="TORTILLAS"&&cfg.group==="contable"&&cfg.inPackage){
     if(partHasFlavors(rec,pid,part)) return FLAVORS.reduce((a,f)=>a+flavorPartTotal(rec,pid,part,f.code),0);
     // Compatibilidad con borradores/historial de v1 (conteo general por cajas)
@@ -356,6 +391,11 @@ function countInputsHtml(pid,part){
   const d=(S.draft.parts[String(part)]&&S.draft.parts[String(part)][pid])||{};
   const v=(f)=>esc(d[f]==null?"":d[f]);
   const p=PRODUCTS.find(x=>x.id===pid);
+  // Las cajas no se cuentan a mano: se calculan solas de las tortillas.
+  if(pid==="caja-familiar-qp"||pid==="caja-chica"){
+    const which=pid==="caja-familiar-qp"?"Tortilla Familiar y Tortilla Sartén":"Tortilla Chica y Tortilla Canelo";
+    return '<div class="hint">Se calcula sola de las tortillas ('+which+') de ambas partes. Total: <b data-cajas-tot="'+pid+'">'+fmt(invTotal(S.draft,pid))+'</b> cajas.</div>';
+  }
   if(p&&p.sec==="TORTILLAS"&&cfg.group==="contable"&&cfg.inPackage){
     let h='<div class="flv-grid">';
     FLAVORS.forEach(f=>{
@@ -477,6 +517,9 @@ function updateCountProgress(){
   document.querySelectorAll("[data-boxes-tot]").forEach(sp=>{
     sp.textContent=boxesPartTotal(S.draft,sp.dataset.boxesTot,part);
   });
+  document.querySelectorAll("[data-cajas-tot]").forEach(sp=>{
+    sp.textContent=fmt(invTotal(S.draft,sp.dataset.cajasTot));
+  });
 }
 document.getElementById("view-count").addEventListener("input",e=>{
   const inp=e.target.closest("input[data-pid]");
@@ -549,7 +592,7 @@ function renderSheet(){
     +'<tr><td><b>FECHA:</b> '+esc(hdr.fecha||"")+'</td><td><b>HORA:</b> '+esc(hdr.hora||"")+'</td></tr></table>'
     +'<div class="muted" style="text-align:right">Actualizado Junio 2025 Op</div></div>';
   SECTIONS.forEach(sec=>{ h+=sheetTableHtml(rec,sec,readonly); });
-  h+='<p class="note">Las columnas de Tortillas son las especialidades de pizza (C = Sin quesear, Q = Queso, PP = Peperonni, H = Hawaiana, Sup = Suprema, 3C = 3 carnes, P/H = Peperonni/Hawaiana, P/S = Peperonni/Suprema, P/M = Peperonni/Mexicana, Pas = Pastor, Jam = Jamón, Mex = Mexicana, Cub = Cubana). Cada celda = cajas × tortillas por caja + sueltas, sumando cuarto frío y cocina. Por caja: Sin quesear — Familiar 3, Chica 3, Canelo 1, Sartén 1; con especialidad — Familiar 2, Chica 2, Canelo 1, Sartén 1. Cada caja es de una sola especialidad. INV de tortillas = suma de las 13 especialidades. DEV y Dev/Mer se llenan a mano. En Ingredientes, la columna CF / COC muestra lo contado en cuarto frío y en cocina por producto. DIF = INV − KARDEX.</p>'
+  h+='<p class="note">Las columnas de Tortillas son las especialidades de pizza (C = Sin quesear, Q = Queso, PP = Peperonni, H = Hawaiana, Sup = Suprema, 3C = 3 carnes, P/H = Peperonni/Hawaiana, P/S = Peperonni/Suprema, P/M = Peperonni/Mexicana, Pas = Pastor, Jam = Jamón, Mex = Mexicana, Cub = Cubana). Cada celda = cajas × tortillas por caja + sueltas, sumando cuarto frío y cocina. Por caja: Sin quesear — Familiar 3, Chica 2, Canelo 1, Sartén 1; con especialidad — Familiar 2, Chica 2, Canelo 1, Sartén 1. Cada caja es de una sola especialidad. INV de tortillas = suma de las 13 especialidades. Las cajas se calculan solas de las tortillas: Caja familiar QP = cajas de Tortilla Familiar + Tortilla Sartén; Caja Chica = cajas de Tortilla Chica + Tortilla Canelo (una caja con sueltas cuenta como caja). DEV y Dev/Mer se llenan a mano. En Ingredientes, la columna CF / COC muestra lo contado en cuarto frío y en cocina por producto. DIF = INV − KARDEX.</p>'
     +'<div class="signs"><div>Firma del Gerente</div><div>Firma del Cajero</div><div>Firma del Gerente de zona / Auditor</div></div></div>';
   if(!readonly){
     h+='<button class="btn primary" id="btn-save-history">💾 Guardar en historial</button>';
@@ -701,7 +744,9 @@ function renderConfig(){
       const c=S.cfg[p.id];
       h+='<div class="cfg-prod" data-cfg="'+p.id+'"><div class="row"><span><b>'+esc(p.name)+'</b> <span class="um">'+esc(p.um)+'</span></span>'
         +'<button class="btn small ghost" data-move="'+p.id+'">→ '+(group==="contable"?"No contables":"Contables")+'</button></div>';
-      if(group==="contable"){
+      if(p.id==="caja-familiar-qp"||p.id==="caja-chica"){
+        h+='<p class="note">Se calcula sola de las tortillas: '+(p.id==="caja-familiar-qp"?"suma de las cajas de Tortilla Familiar y Tortilla Sartén":"suma de las cajas de Tortilla Chica y Tortilla Canelo")+' de ambas partes (una caja con sueltas cuenta como caja). No se cuenta a mano.</p>';
+      } else if(group==="contable"){
         h+='<label class="check"><input type="checkbox" data-cfg-field="inPackage" data-pid="'+p.id+'" '+(c.inPackage?"checked":"")+'> Viene en paquete</label>';
         if(c.inPackage){
           if(p.sec==="TORTILLAS"){
