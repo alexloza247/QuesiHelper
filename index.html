@@ -56,6 +56,17 @@
      puede pasar a dos líneas y los botones quedan de la misma altura. */
   .parttabs button{flex:1;min-width:0;border:1px solid #b91c1c;background:#fff;color:#b91c1c;border-radius:10px;padding:10px 6px;font-size:14px;line-height:1.2;font-weight:700;cursor:pointer}
   .parttabs button.on{background:#b91c1c;color:#fff}
+  /* Encabezado de conteo fijo al bajar (solo en Contar): el título, las
+     tres pestañas de parte y la línea de info quedan pegados arriba,
+     debajo de #topbar, mientras se baja por la lista de productos. La
+     altura exacta de #topbar se mide desde JS (variable
+     --count-head-top); el valor de reserva aproxima su altura en el
+     teléfono. Solo existe dentro de la vista de conteo: en Hoja,
+     Historial y Configuración no se ve. */
+  #count-head{position:sticky;top:var(--count-head-top,129px);z-index:15;background:#fff7ef;margin:0 -12px;padding:6px 12px 10px;border-bottom:1px solid #e7d9c8}
+  #count-head h2{margin:0 0 8px}
+  #count-head .parttabs{margin:0 0 6px}
+  #count-head p.muted{margin:0}
   /* Desglose de la explosión por pizza: cada bloque lleva el tipo, la
      cantidad de pizzas y sus insumos; el total va aparte. */
   .expl-brk{border-top:1px solid #e7d9c8;margin-top:8px;padding-top:8px}
@@ -279,7 +290,8 @@ const EXPLOSION_PRODUCTS={queso:"queso","pasta-pizza":"pasta",pepperoni:"peppero
 
 /* ============ Configuración por defecto ============
    Los valores iniciales son la configuración real de Alejandro
-   (2026-11-15, ya con todo ajustado en su inventario de prueba):
+   (actualizada 2026-11-16 con lo que exportó desde el APK: tipos de
+   bolsa de los tres aderezos):
    al abrir la app por primera vez ya vienen sus grupos, cantidades
    por paquete (las dos de tortillas), tipos de bolsa, envases y
    recipientes. Todo se puede cambiar en Configuración, y
@@ -680,7 +692,12 @@ const DEFAULT_CFG={
     "envUnit": "kg",
     "useTare": true,
     "tareWeight": "0.065",
-    "bagTypes": []
+    "bagTypes": [
+      {
+        "name": "",
+        "size": ".57"
+      }
+    ]
   },
   "salsa-buffalo": {
     "group": "nocontable",
@@ -690,7 +707,12 @@ const DEFAULT_CFG={
     "envUnit": "kg",
     "useTare": true,
     "tareWeight": "0.055",
-    "bagTypes": []
+    "bagTypes": [
+      {
+        "name": "",
+        "size": ".414"
+      }
+    ]
   },
   "salsa-bbq": {
     "group": "nocontable",
@@ -700,7 +722,12 @@ const DEFAULT_CFG={
     "envUnit": "kg",
     "useTare": true,
     "tareWeight": "0.055",
-    "bagTypes": []
+    "bagTypes": [
+      {
+        "name": "",
+        "size": ".414"
+      }
+    ]
   },
   "pepsi-400": {
     "group": "contable",
@@ -1318,12 +1345,24 @@ function updateThumb(){
   const ratio=ms>0?window.scrollY/ms:0;
   thumbEl.style.top=Math.round(ratio*range)+"px";
 }
+/* El encabezado de conteo (#count-head) va pegado justo debajo de
+   #topbar: su altura se mide aquí (la barra cambia con el ancho de la
+   pantalla) y se guarda en la variable --count-head-top. Si no hay
+   encabezado de conteo en pantalla no se hace nada. */
+function updateCountHeadTop(){
+  const ch=document.getElementById("count-head");
+  if(!ch) return;
+  const top=document.getElementById("topbar");
+  document.documentElement.style.setProperty("--count-head-top",(top?top.offsetHeight:0)+"px");
+}
 /* Paradas del slider: el encabezado de cada sección del conteo, con
-   su posición de scroll (descontando el encabezado fijo para que el
-   título de la sección no quede tapado). */
+   su posición de scroll (descontando los dos encabezados fijos —
+   #topbar y #count-head — para que el título de la sección no quede
+   tapado). */
 function sectionStops(){
   const top=document.getElementById("topbar");
-  const off=top?top.offsetHeight:0;
+  const ch=document.getElementById("count-head");
+  const off=(top?top.offsetHeight:0)+(ch?ch.offsetHeight:0);
   const ms=maxScroll();
   return Array.from(document.querySelectorAll("#view-count h3.sec")).map(h=>({
     name:h.textContent.trim(),
@@ -1339,6 +1378,7 @@ function nearestStop(y){
 }
 window.addEventListener("scroll",updateThumb,{passive:true});
 window.addEventListener("resize",updateThumb);
+window.addEventListener("resize",updateCountHeadTop);
 document.getElementById("btn-scroll-top").addEventListener("click",()=>window.scrollTo({top:0,behavior:"smooth"}));
 document.getElementById("btn-scroll-bottom").addEventListener("click",()=>window.scrollTo({top:maxScroll(),behavior:"smooth"}));
 let dragStartY=0,dragStartScroll=0,dragging=false;
@@ -1474,9 +1514,9 @@ function renderCount(){
   if(part===3){ renderExplosion(); return; }
   const partName=part===1?"Cuarto frío":"Cocina";
   const unconfigured=PRODUCTS.filter(p=>S.cfg[p.id].group==="nocontable"&&!bagTypesOf(S.cfg[p.id]).some(t=>num(t.size)>0)).length;
-  let h='<h2>Conteo · '+partName+'</h2>'
+  let h='<div id="count-head"><h2>Conteo · '+partName+'</h2>'
     +'<div class="parttabs"><button data-part="1" class="'+(part===1?"on":"")+'">1 · Cuarto frío</button><button data-part="2" class="'+(part===2?"on":"")+'">2 · Cocina</button><button data-part="3" class="'+(part===3?"on":"")+'">3 · Explosión</button></div>'
-    +'<p class="muted">'+esc(S.draft.header.sucursal||"Sin sucursal")+' · '+esc(S.draft.header.turno||"Sin turno")+' · '+esc(S.draft.header.fecha)+' '+esc(S.draft.header.hora)+' · <span id="count-progress"></span></p>'
+    +'<p class="muted">'+esc(S.draft.header.sucursal||"Sin sucursal")+' · '+esc(S.draft.header.turno||"Sin turno")+' · '+esc(S.draft.header.fecha)+' '+esc(S.draft.header.hora)+' · <span id="count-progress"></span></p></div>'
     +(unconfigured?'<p class="hint">⚠️ '+unconfigured+' insumo(s) sin tamaño de envase — configúralos en Configuración para poder contar bolsas.</p>':"")
     +'<div id="count-list">';
   SECTIONS.forEach(sec=>{
@@ -1492,6 +1532,7 @@ function renderCount(){
   h+='<button class="btn secondary" id="btn-view-sheet">Ver hoja (con lo que llevo)</button>';
   h+='<button class="btn ghost" id="btn-discard">Descartar borrador</button>';
   el.innerHTML=h;
+  updateCountHeadTop();
   el.querySelectorAll(".parttabs button").forEach(b=>b.addEventListener("click",()=>{ui.part=parseInt(b.dataset.part,10);renderCount();}));
   const nb=document.getElementById("btn-next-part");
   if(nb) nb.addEventListener("click",()=>{ui.part=2;save();renderCount();window.scrollTo(0,0);});
@@ -1552,8 +1593,8 @@ function renderExplosion(){
     return '<div class="expl-brk" data-expl-brk="'+b.key+'"><div class="prod-head"><span><b>'+esc(b.label)+'</b> <span class="um">'+fmt(b.n)+' pizza'+(b.n===1?"":"s")+'</span></span></div>'
       +b.fields.map(f=>'<div class="prod-head"><span>'+RECIPE_FIELDS[f]+' <span class="um">KG</span></span><span class="tot">'+fmt(b.vals[f])+' <small>kg</small></span></div>').join("")+'</div>';
   }).join("")+'</div>':"";
-  let h='<h2>Explosión</h2>'
-    +'<div class="parttabs"><button data-part="1">1 · Cuarto frío</button><button data-part="2">2 · Cocina</button><button data-part="3" class="on">3 · Explosión</button></div>'
+  let h='<div id="count-head"><h2>Explosión</h2>'
+    +'<div class="parttabs"><button data-part="1">1 · Cuarto frío</button><button data-part="2">2 · Cocina</button><button data-part="3" class="on">3 · Explosión</button></div></div>'
     +'<p class="muted">Insumos que se usaron para las pizzas que quedaron en el inventario, según las recetas. Ya viene calculado: solo léelo y confírmalo.</p>'
     +'<p class="muted">Pizzas contadas — Familiar: '+fmt(qF)+' de queso · '+fmt(ppF)+' de peperonni; Chica: '+fmt(qC)+' de queso · '+fmt(ppC)+' de peperonni.</p>'
     +brkHtml
@@ -1566,6 +1607,7 @@ function renderExplosion(){
     +'<button class="btn primary" id="btn-confirm-explosion">✓ Confirmar explosión</button>'
     +'<button class="btn secondary" id="btn-back-part2">← Volver a contar (Cocina)</button>';
   el.innerHTML=h;
+  updateCountHeadTop();
   el.querySelectorAll(".parttabs button").forEach(b=>b.addEventListener("click",()=>{ui.part=parseInt(b.dataset.part,10);renderCount();}));
   document.getElementById("btn-confirm-explosion").addEventListener("click",()=>{
     S.draft.explosion={pasta:tot.pasta,queso:tot.queso,pepperoni:tot.pepperoni,confirmed:true};
