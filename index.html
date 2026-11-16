@@ -96,13 +96,20 @@
   .check input{width:20px;height:20px;accent-color:#b91c1c}
   #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#26221f;color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:50;max-width:92vw;text-align:center}
   #toast.show{opacity:1}
+  /* Bienvenida la primera vez: pide la sucursal y el turno una sola vez
+     al abrir la app. El fondo oscurece lo demás, pero no bloquea: con
+     "Más tarde" se cierra y ya no vuelve a salir. */
+  #welcome{position:fixed;inset:0;background:rgba(38,34,31,.55);z-index:60;display:flex;align-items:center;justify-content:center;padding:16px}
+  #welcome[hidden]{display:none}
+  .welcome-card{background:#fff7ef;border-radius:14px;padding:18px;max-width:420px;width:100%;box-shadow:0 8px 30px rgba(0,0,0,.3)}
+  .welcome-card h2{margin:0 0 6px}
   .pill{display:inline-block;background:#fef3c7;color:#92400e;border-radius:20px;padding:2px 9px;font-size:12px;font-weight:700}
   /* Vista de impresión: solo existe para imprimir/PDF, nunca se ve en pantalla */
   #printSheet{display:none}
   @media print{
     @page{size:letter portrait;margin:5mm}
     body{background:#fff;color:#000}
-    header,nav,main,#toast{display:none!important}
+    header,nav,main,#toast,#welcome{display:none!important}
     #topbar,#quicknav{display:none!important}
     #printSheet{display:block!important;font-family:Arial,Helvetica,sans-serif;color:#000}
     #printSheet .psheet{border:2px solid #000;padding:4px 6px}
@@ -157,6 +164,16 @@
 </div>
 <div id="printSheet"></div>
 <div id="toast"></div>
+<div id="welcome" hidden>
+  <div class="welcome-card">
+    <h2>¡Bienvenido a Quesi-Helper! 🍕</h2>
+    <p class="muted">Antes de empezar, dime tu sucursal y tu turno: se guardan una sola vez y cada inventario nuevo ya los trae llenos, solo para confirmarlos. Si un día te toca otra sucursal u otro turno, los cambias en Configuración o en el encabezado de ese inventario.</p>
+    <label class="f">Sucursal</label><input type="text" id="w-sucursal" placeholder="Ej. Filadelfia">
+    <label class="f">Turno</label><input type="text" id="w-turno" placeholder="Ej. Matutino">
+    <button class="btn primary" id="btn-welcome-save">Guardar y empezar</button>
+    <button class="btn" id="btn-welcome-later">Más tarde</button>
+  </div>
+</div>
 <script>
 "use strict";
 /* ============ Datos de la hojita (Actualizado Junio 2025 Op) ============ */
@@ -862,7 +879,7 @@ function defaultCfg(){
    vienen llenos en cada inventario nuevo (solo se confirman). No son parte
    de la configuración de productos: no se comparten con el texto
    QUESIHELPER-CONFIG:. */
-let S={cfg:defaultCfg(),history:[],draft:null,prefs:{sucursal:"",turno:""}};
+let S={cfg:defaultCfg(),history:[],draft:null,prefs:{sucursal:"",turno:"",welcomeAsked:false}};
 let ui={view:"count",part:1,histId:null,cfgTab:"inventario"};
 function load(){
   try{
@@ -873,7 +890,7 @@ function load(){
         if(d.cfg) S.cfg=Object.assign(defaultCfg(),d.cfg);
         if(Array.isArray(d.history)) S.history=d.history;
         if(d.draft) S.draft=d.draft;
-        if(d.prefs){ S.prefs.sucursal=d.prefs.sucursal||""; S.prefs.turno=d.prefs.turno||""; }
+        if(d.prefs){ S.prefs.sucursal=d.prefs.sucursal||""; S.prefs.turno=d.prefs.turno||""; S.prefs.welcomeAsked=!!d.prefs.welcomeAsked; }
       }
     }
   }catch(e){}
@@ -961,6 +978,31 @@ function isoDate(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2
 function hhmm(d){return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");}
 function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove("show"),2600);}
+/* Bienvenida la primera vez: al abrir la app, si la sucursal o el turno
+   todavía no se han guardado, pide los dos en un modal. Se guardan en
+   S.prefs como siempre y prellenan el inventario nuevo. Con "Más tarde"
+   (o tocando fuera de la tarjeta) se cierra y ya no vuelve a salir en las
+   siguientes cargas: se marca welcomeAsked y queda guardado. Guardar
+   también marca welcomeAsked, así la pregunta es una sola vez aunque se
+   deje un campo vacío. */
+function prefsMissing(){ return !S.prefs.sucursal||!S.prefs.turno; }
+function maybeShowWelcome(){
+  if(S.prefs.welcomeAsked||!prefsMissing()) return;
+  document.getElementById("w-sucursal").value=S.prefs.sucursal||"";
+  document.getElementById("w-turno").value=S.prefs.turno||"";
+  document.getElementById("welcome").hidden=false;
+}
+function closeWelcome(){ document.getElementById("welcome").hidden=true; }
+function saveWelcome(){
+  const suc=document.getElementById("w-sucursal").value.trim();
+  const tur=document.getElementById("w-turno").value.trim();
+  if(suc) S.prefs.sucursal=suc;
+  if(tur) S.prefs.turno=tur;
+  S.prefs.welcomeAsked=true; save(); closeWelcome();
+  if(S.prefs.sucursal||S.prefs.turno) toast("Sucursal y turno guardados");
+  renderCount();
+}
+function skipWelcome(){ S.prefs.welcomeAsked=true; save(); closeWelcome(); }
 function newDraft(){
   const now=new Date();
   return {header:{sucursal:"",turno:"",fecha:isoDate(now),hora:hhmm(now)},parts:{"1":{},"2":{}},kardex:{},flavors:{},dev:{},devmer:{},createdAt:Date.now()};
@@ -2175,7 +2217,11 @@ function renderPrintSheet(rec){
 /* ============ Inicio ============ */
 load();
 show("count");
-window.QH={get S(){return S;},scrollPos,PRODUCTS,SECTIONS,FLAVORS,RECIPES,DEFAULT_RECIPES,EXPLOSION_PRODUCTS,partTotal,invTotal,difOf,fmt,defaultCfg,sheetText,show,renderCount,renderSheet,renderHistory,renderConfig,flavorTotal,flavorPartTotal,flavorCellValue,tortillaPerBox,boxesPartTotal,partHasFlavors,bagTypesOf,boxesFlavorPart,partialFlavorPart,partialsOfTypePart,vaciasPart,vaciasTotal,printSheetHtml,renderPrintSheet,exportCfgText,importCfg,shareCfg,cleanCfg,cleanRecipes,recipesOf,explosionTotals,explosionOf,explosionBreakdown,sectionStops,nearestStop,updateThumb,maxScroll,b64encode,b64decode,compatCfg,compatDraftCanelo};
+document.getElementById("btn-welcome-save").addEventListener("click",saveWelcome);
+document.getElementById("btn-welcome-later").addEventListener("click",skipWelcome);
+document.getElementById("welcome").addEventListener("click",e=>{ if(e.target.id==="welcome") skipWelcome(); });
+maybeShowWelcome();
+window.QH={get S(){return S;},scrollPos,PRODUCTS,SECTIONS,FLAVORS,RECIPES,DEFAULT_RECIPES,EXPLOSION_PRODUCTS,partTotal,invTotal,difOf,fmt,defaultCfg,sheetText,show,renderCount,renderSheet,renderHistory,renderConfig,flavorTotal,flavorPartTotal,flavorCellValue,tortillaPerBox,boxesPartTotal,partHasFlavors,bagTypesOf,boxesFlavorPart,partialFlavorPart,partialsOfTypePart,vaciasPart,vaciasTotal,printSheetHtml,renderPrintSheet,exportCfgText,importCfg,shareCfg,cleanCfg,cleanRecipes,recipesOf,explosionTotals,explosionOf,explosionBreakdown,sectionStops,nearestStop,updateThumb,maxScroll,b64encode,b64decode,compatCfg,compatDraftCanelo,maybeShowWelcome,saveWelcome,skipWelcome,prefsMissing};
 </script>
 </body>
 </html>
