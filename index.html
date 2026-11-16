@@ -791,7 +791,11 @@ function defaultCfg(){
   return JSON.parse(JSON.stringify(DEFAULT_CFG));
 }
 /* ============ Estado ============ */
-let S={cfg:defaultCfg(),history:[],draft:null};
+/* prefs: sucursal y turno que se configuran una vez en Configuración y ya
+   vienen llenos en cada inventario nuevo (solo se confirman). No son parte
+   de la configuración de productos: no se comparten con el texto
+   QUESIHELPER-CONFIG:. */
+let S={cfg:defaultCfg(),history:[],draft:null,prefs:{sucursal:"",turno:""}};
 let ui={view:"count",part:1,histId:null};
 function load(){
   try{
@@ -802,6 +806,7 @@ function load(){
         if(d.cfg) S.cfg=Object.assign(defaultCfg(),d.cfg);
         if(Array.isArray(d.history)) S.history=d.history;
         if(d.draft) S.draft=d.draft;
+        if(d.prefs){ S.prefs.sucursal=d.prefs.sucursal||""; S.prefs.turno=d.prefs.turno||""; }
       }
     }
   }catch(e){}
@@ -1032,16 +1037,25 @@ function renderCount(){
   if(!S.draft){
     el.innerHTML='<h2>Nuevo inventario del día</h2>'
       +'<div class="card"><p class="muted">Llena el encabezado y empieza el conteo. Primero el <b>cuarto frío</b> y después la <b>cocina</b> (el refri es de la cocina). En cada parte aparecen todos los productos, por si las moscas.</p>'
-      +'<label class="f">Sucursal</label><input type="text" id="h-sucursal" placeholder="Ej. Lerdo centro">'
-      +'<label class="f">Turno</label><input type="text" id="h-turno" placeholder="Ej. Matutino">'
+      +'<label class="f">Sucursal</label><input type="text" id="h-sucursal" placeholder="Ej. Lerdo centro" value="'+esc(S.prefs.sucursal)+'">'
+      +'<label class="f">Turno</label><input type="text" id="h-turno" placeholder="Ej. Matutino" value="'+esc(S.prefs.turno)+'">'
+      +((S.prefs.sucursal||S.prefs.turno)?'<p class="note">La sucursal y el turno ya vienen llenos con lo guardado en Configuración. Si hoy te toca otra, cámbialos aquí: solo vale para este inventario.</p>':"")
       +'<div class="grid2"><div><label class="f">Fecha</label><input type="date" id="h-fecha" value="'+esc(isoDate(new Date()))+'"></div>'
       +'<div><label class="f">Hora</label><input type="time" id="h-hora" value="'+esc(hhmm(new Date()))+'"></div></div>'
       +'<button class="btn primary" id="btn-start">Empezar conteo → Cuarto frío</button>'
       +'<p class="note">Antes de contar, revisa en <b>Configuración</b> que cada insumo tenga su método de conteo (paquetes, envases y recipientes).</p></div>';
     document.getElementById("btn-start").addEventListener("click",()=>{
+      const suc=document.getElementById("h-sucursal").value.trim();
+      const tur=document.getElementById("h-turno").value.trim();
+      /* Sucursal y turno se configuran una vez: si todavía no hay nada
+         guardado (primera vez), lo que se escriba aquí se guarda como valor
+         por defecto para los próximos inventarios. Si ya hay algo guardado,
+         un cambio aquí vale solo para este inventario (no lo sobrescribe). */
+      if(!S.prefs.sucursal&&suc) S.prefs.sucursal=suc;
+      if(!S.prefs.turno&&tur) S.prefs.turno=tur;
       S.draft=newDraft();
-      S.draft.header.sucursal=document.getElementById("h-sucursal").value.trim();
-      S.draft.header.turno=document.getElementById("h-turno").value.trim();
+      S.draft.header.sucursal=suc;
+      S.draft.header.turno=tur;
       S.draft.header.fecha=document.getElementById("h-fecha").value||isoDate(new Date());
       S.draft.header.hora=document.getElementById("h-hora").value||hhmm(new Date());
       ui.part=1; save(); renderCount();
@@ -1422,7 +1436,11 @@ function renderConfig(){
     +'<label class="f">Importar configuración (pega aquí el texto que te compartieron)</label>'
     +'<textarea id="cfg-import-text" rows="3" style="width:100%;padding:10px 9px;font-size:13px;border:1px solid #d6d3d1;border-radius:8px;background:#fff;color:#26221f" placeholder="QUESIHELPER-CONFIG:..."></textarea>'
     +'<p id="cfg-import-msg" class="note" style="margin:6px 0 0"></p>'
-    +'<button class="btn secondary" id="btn-import-cfg">📥 Importar configuración</button></div>';
+    +'<button class="btn secondary" id="btn-import-cfg">📥 Importar configuración</button></div>'
+    +'<h3 class="sec">Sucursal y turno</h3>'
+    +'<div class="card"><p class="muted">Se configuran una vez y quedan guardados: cada inventario nuevo ya trae la sucursal y el turno llenos, solo para confirmarlos. Si un día te toca otra sucursal u otro turno, cámbialos en el encabezado de ese inventario (solo vale para ese día). La fecha y la hora se ponen solas con las de hoy.</p>'
+    +'<label class="f">Sucursal</label><input type="text" id="pref-sucursal" data-pref="sucursal" placeholder="Ej. Filadelfia" value="'+esc(S.prefs.sucursal)+'">'
+    +'<label class="f">Turno</label><input type="text" id="pref-turno" data-pref="turno" placeholder="Ej. Matutino" value="'+esc(S.prefs.turno)+'"></div>';
   ["contable","nocontable"].forEach(group=>{
     const list=PRODUCTS.filter(p=>S.cfg[p.id].group===group);
     h+='<h3 class="sec">'+(group==="contable"?"Contables":"No contables")+' ('+list.length+')</h3>';
@@ -1494,6 +1512,10 @@ function renderConfig(){
   document.getElementById("btn-import-cfg").addEventListener("click",importCfg);
 }
 document.getElementById("view-config").addEventListener("input",e=>{
+  // Sucursal y turno guardados: se escriben una vez y quedan para todos
+  // los inventarios nuevos (se guardan al teclear, sin re-renderizar).
+  const pref=e.target.closest("[data-pref]");
+  if(pref){ S.prefs[pref.dataset.pref]=pref.value; save(); return; }
   const inp=e.target.closest("[data-cfg-field]");
   if(!inp) return;
   const pid=inp.dataset.pid, f=inp.dataset.cfgField;
