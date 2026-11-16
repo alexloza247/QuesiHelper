@@ -200,19 +200,596 @@ const FLAVORS=[
 ];
 const LS="quesihelper_v1";
 
-/* ============ Configuración por defecto ============ */
+/* ============ Configuración por defecto ============
+   Los valores iniciales son la configuración real de Alejandro
+   (2026-11-15, ya con todo ajustado en su inventario de prueba):
+   al abrir la app por primera vez ya vienen sus grupos, cantidades
+   por paquete (las dos de tortillas), tipos de bolsa, envases y
+   recipientes. Todo se puede cambiar en Configuración, y
+   "Restablecer valores iniciales" vuelve a estos valores. */
 const TORTILLA_PER_BOX_PLAIN={"tortilla-familiar":3,"tortilla-chica":2,"tortilla-canelo":1,"tortilla-sarten":1};
 const TORTILLA_PER_BOX_ESP={"tortilla-familiar":2,"tortilla-chica":2,"tortilla-canelo":1,"tortilla-sarten":1};
+const DEFAULT_CFG={
+  "caja-familiar-qp": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": "3",
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "caja-chica": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "tortilla-familiar": {
+    "group": "contable",
+    "inPackage": true,
+    "qtyPerPackage": 3,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null,
+    "qtyPerPackageEsp": 2
+  },
+  "tortilla-chica": {
+    "group": "contable",
+    "inPackage": true,
+    "qtyPerPackage": 2,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null,
+    "qtyPerPackageEsp": 2
+  },
+  "tortilla-canelo": {
+    "group": "contable",
+    "inPackage": true,
+    "qtyPerPackage": 1,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null,
+    "qtyPerPackageEsp": 1
+  },
+  "tortilla-sarten": {
+    "group": "contable",
+    "inPackage": true,
+    "qtyPerPackage": 1,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null,
+    "qtyPerPackageEsp": 1
+  },
+  "adobada-cocida": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": "0.400",
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": 0,
+    "bagTypes": [
+      {
+        "name": "",
+        "size": 0.4
+      }
+    ]
+  },
+  "boneless": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "qtyPerPackageEsp": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "cajeta": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": "1",
+    "envUnit": "kg",
+    "useTare": true,
+    "tareWeight": "0.06",
+    "bagTypes": [
+      {
+        "name": "",
+        "size": 1
+      }
+    ]
+  },
+  "cebolla-morada": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": "0",
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null,
+    "bagTypes": []
+  },
+  "chorizo-cocido": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": "0.500",
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null,
+    "bagTypes": [
+      {
+        "name": "",
+        "size": 0.5
+      }
+    ]
+  },
+  "glaseado": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": "0.500",
+    "envUnit": "kg",
+    "useTare": true,
+    "tareWeight": "0.06",
+    "bagTypes": [
+      {
+        "name": "",
+        "size": 0.5
+      }
+    ]
+  },
+  "goma-pasta": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": "0",
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null,
+    "bagTypes": []
+  },
+  "jalapeno": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": "1.75",
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null,
+    "bagTypes": [
+      {
+        "name": "",
+        "size": 1.75
+      }
+    ]
+  },
+  "jamon": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": "0.8",
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null,
+    "bagTypes": [
+      {
+        "name": "",
+        "size": 0.8
+      }
+    ]
+  },
+  "mantequilla": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": ".5",
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null,
+    "bagTypes": [
+      {
+        "name": "",
+        "size": 0.5
+      }
+    ]
+  },
+  "pasta-pizza": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": "3",
+    "envUnit": "kg",
+    "useTare": true,
+    "tareWeight": "0.54",
+    "bagTypes": [
+      {
+        "name": "",
+        "size": 3
+      }
+    ]
+  },
+  "pepperoni": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": "5.67",
+    "envUnit": "kg",
+    "useTare": true,
+    "tareWeight": "0.42",
+    "bagTypes": [
+      {
+        "name": "",
+        "size": 5.67
+      }
+    ]
+  },
+  "pina": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": "1.5",
+    "envUnit": "kg",
+    "useTare": true,
+    "tareWeight": "0.34",
+    "bagTypes": [
+      {
+        "name": "",
+        "size": 1.5
+      }
+    ]
+  },
+  "queso": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": true,
+    "tareWeight": ".90",
+    "bagTypes": [
+      {
+        "name": "Genérico ",
+        "size": "4.5"
+      },
+      {
+        "name": "Normal",
+        "size": "2.26"
+      }
+    ]
+  },
+  "queso-crema": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": true,
+    "tareWeight": ".025",
+    "bagTypes": [
+      {
+        "name": "",
+        "size": ".25"
+      }
+    ]
+  },
+  "salchicha-italiana": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null,
+    "bagTypes": [
+      {
+        "name": "",
+        "size": ".5"
+      }
+    ]
+  },
+  "salchicha-polaca": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null,
+    "bagTypes": [
+      {
+        "name": "",
+        "size": ".3"
+      }
+    ]
+  },
+  "tocino": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null,
+    "bagTypes": [
+      {
+        "name": "",
+        "size": ".6"
+      }
+    ]
+  },
+  "salsa-habanera-sobre": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "salsa-tradicional-sobre": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "salsa-catsup-botella": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "salsa-habanera-botella": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "salsa-tradicional-botella": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "aderezo-ranch": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": true,
+    "tareWeight": ".16",
+    "bagTypes": []
+  },
+  "aderezo-chipotle": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": true,
+    "tareWeight": ".16",
+    "bagTypes": []
+  },
+  "salsa-mango-habanero": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": true,
+    "tareWeight": "0.065",
+    "bagTypes": []
+  },
+  "salsa-buffalo": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": true,
+    "tareWeight": "0.055",
+    "bagTypes": []
+  },
+  "salsa-bbq": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": true,
+    "tareWeight": "0.055",
+    "bagTypes": []
+  },
+  "pepsi-400": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "pepsi-600": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "sevenup-600": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "manzana-600": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "lipton-600": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "epura-jugo-330": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "epura-agua-1l": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "pepsi-2l": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "sevenup-2l": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "manzana-2l": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "domo-negro": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "tenedor": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "contenedor-2oz": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "tapa-contenedor-2oz": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "vaso-animado": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "vaso-regular": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "popote": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "tapa-domo": {
+    "group": "contable",
+    "inPackage": true,
+    "qtyPerPackage": 1,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  }
+};
 function defaultCfg(){
-  const c={};
-  PRODUCTS.forEach(p=>{
-    if(p.sec==="TORTILLAS") c[p.id]={group:"contable",inPackage:true,qtyPerPackage:TORTILLA_PER_BOX_PLAIN[p.id],qtyPerPackageEsp:TORTILLA_PER_BOX_ESP[p.id],envSize:null,envUnit:"kg",useTare:false,tareWeight:null};
-    else if(p.sec==="INGREDIENTES"||p.sec==="ADEREZOS") c[p.id]={group:"nocontable",inPackage:false,qtyPerPackage:null,qtyPerPackageEsp:null,bagTypes:[],envSize:null,envUnit:(p.id==="boneless"?"porción":"kg"),useTare:(p.id==="queso"),tareWeight:null};
-    else c[p.id]={group:"contable",inPackage:false,qtyPerPackage:null,qtyPerPackageEsp:null,envSize:null,envUnit:"kg",useTare:false,tareWeight:null};
-  });
-  return c;
+  // Copia profunda: cada llamada devuelve un objeto nuevo, para que
+  // cambiar la configuración nunca corrompa los valores iniciales.
+  return JSON.parse(JSON.stringify(DEFAULT_CFG));
 }
-
 /* ============ Estado ============ */
 let S={cfg:defaultCfg(),history:[],draft:null};
 let ui={view:"count",part:1,histId:null};
@@ -775,7 +1352,13 @@ function cleanCfg(raw){
     if(c.group==="contable"||c.group==="nocontable") d.group=c.group;
     if(typeof c.inPackage==="boolean") d.inPackage=c.inPackage;
     if(typeof c.useTare==="boolean") d.useTare=c.useTare;
+    // Campos numéricos: solo se incluyen si el texto importado los trae.
+    // Si faltan, NO se ponen en null: así la importación parcial no borra
+    // los valores por defecto (antes se borraban: cleanCfg ponía null y
+    // Object.assign lo pisaba; con los defaults genéricos no se notaba
+    // porque ya eran null, pero con la config de Alejandro sí).
     ["qtyPerPackage","qtyPerPackageEsp","envSize","tareWeight"].forEach(f=>{
+      if(!(f in c)) return;
       if(c[f]==null) d[f]=null;
       else { const n=parseFloat(c[f]); if(isFinite(n)) d[f]=n; }
     });
