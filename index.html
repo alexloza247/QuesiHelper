@@ -42,6 +42,13 @@
   .fields label{font-size:12.5px;color:#57534e;display:block}
   .fields input{margin-top:2px}
   .hint{font-size:12.5px;color:#b45309;margin-top:6px}
+  /* Devolución / merma por producto (solo Ingredientes): el check marca si
+     el producto tiene devolución; al marcarlo aparece el campo de cantidad,
+     que va a la columna Dev/Mer de la hoja y suma al INV. */
+  .devrow{border-top:1px dashed #e7d9c8;margin-top:10px;padding-top:8px}
+  .devrow label.check{margin:0;font-size:13.5px}
+  .devrow .devqty{margin-top:8px;font-size:12.5px;color:#57534e;display:block}
+  .devrow .devqty input{margin-top:2px}
   .flv-grid{margin-top:8px}
   .flv-row{display:grid;grid-template-columns:minmax(104px,1.3fr) 1fr 1fr 48px;gap:6px;align-items:center;padding:5px 0;border-bottom:1px solid #fafaf9}
   .flv-name{font-size:12.5px}
@@ -1211,11 +1218,14 @@ function partTotal(rec,pid,part){
 /* INV de un producto: cuarto frío + cocina. Para Queso, Pasta p/ Pizza y
    Pepperoni, la explosión TAMBIÉN suma al INV: las tres partes de la
    casilla (cuarto frío, cocina y explosión — los tres tercios) suman el
-   INV. Para los demás productos el INV sigue siendo cuarto frío + cocina. */
+   INV. Para los demás productos el INV sigue siendo cuarto frío + cocina.
+   La Dev/Mer (devolución o merma, marcada en el conteo o escrita en la
+   hoja) TAMBIÉN suma al INV de ese producto. */
 function invTotal(rec,pid){
   let t=partTotal(rec,pid,1)+partTotal(rec,pid,2);
   const exKey=EXPLOSION_PRODUCTS[pid];
   if(exKey) t+=num(explosionOf(rec)[exKey]);
+  t+=num(rec.devmer&&rec.devmer[pid]);
   return t;
 }
 function difOf(rec,pid){ return invTotal(rec,pid)-num(rec.kardex?rec.kardex[pid]:0); }
@@ -1400,6 +1410,22 @@ thumbEl.addEventListener("pointerup",()=>{dragging=false;});
 thumbEl.addEventListener("pointercancel",()=>{dragging=false;});
 
 /* ============ Vista Contar ============ */
+/* Devolución / merma por producto (solo Ingredientes, que son los que
+   tienen columna Dev/Mer en la hoja): el check marca si el producto tiene
+   devolución; al marcarlo aparece el campo de cantidad. La cantidad va a
+   rec.devmer[pid] — LA MISMA fuente que el campo manual de Dev/Mer de la
+   hoja — así se puede poner o quitar desde el conteo o desde la hoja y
+   siempre coincide. devOpen recuerda (solo en pantalla) los productos
+   cuyo check se marcó pero aún no tienen cantidad escrita. */
+const devOpen=new Set();
+function devRowHtml(pid){
+  const p=PRODUCTS.find(x=>x.id===pid);
+  if(!p||p.sec!=="INGREDIENTES") return "";
+  const dm=S.draft.devmer&&S.draft.devmer[pid];
+  const open=num(dm)!==0||devOpen.has(pid);
+  return '<div class="devrow"><label class="check"><input type="checkbox" data-devcheck="'+pid+'"'+(open?" checked":"")+'> ¿Devolución / merma?</label>'
+    +'<label class="devqty"'+(open?"":" hidden")+'>Cantidad devuelta ('+esc(p.um)+')<input type="number" min="0" step="0.001" inputmode="decimal" data-devqty="'+pid+'" value="'+esc(dm==null?"":dm)+'"></label></div>';
+}
 function countInputsHtml(pid,part){
   const cfg=S.cfg[pid];
   const d=(S.draft.parts[String(part)]&&S.draft.parts[String(part)][pid])||{};
@@ -1480,6 +1506,7 @@ function countInputsHtml(pid,part){
 function renderCount(){
   const el=document.getElementById("view-count");
   if(!S.draft){
+    devOpen.clear();
     el.innerHTML='<h2>Nuevo inventario del día</h2>'
       +'<div class="card"><p class="muted">Llena el encabezado y empieza el conteo. Primero el <b>cuarto frío</b> y después la <b>cocina</b> (el refri es de la cocina). En cada parte aparecen todos los productos, por si las moscas.</p>'
       +'<label class="f">Sucursal</label><input type="text" id="h-sucursal" placeholder="Ej. Lerdo centro" value="'+esc(S.prefs.sucursal)+'">'
@@ -1523,7 +1550,7 @@ function renderCount(){
     h+='<h3 class="sec">'+sec+'</h3>';
     PRODUCTS.filter(p=>p.sec===sec).forEach(p=>{
       h+='<div class="prod" data-prod="'+p.id+'"><div class="prod-head"><span><b>'+esc(p.name)+'</b> <span class="um">'+esc(p.um)+'</span></span><span class="tot" data-tot="'+p.id+'">'+fmt(partTotal(S.draft,p.id,part))+' <small>'+esc(p.um)+'</small></span></div>'
-        +countInputsHtml(p.id,part)+'</div>';
+        +countInputsHtml(p.id,part)+devRowHtml(p.id)+'</div>';
     });
   });
   h+='</div>';
@@ -1635,6 +1662,36 @@ document.getElementById("view-count").addEventListener("input",e=>{
   save();
   updateCountProgress();
 });
+/* Devolución / merma en el conteo: al marcar el check aparece el campo de
+   cantidad; al desmarcarlo se borra la cantidad (Dev/Mer queda vacío).
+   La cantidad se guarda en S.draft.devmer[pid], la misma fuente que el
+   campo manual de la hoja. */
+document.getElementById("view-count").addEventListener("change",e=>{
+  const cb=e.target.closest("input[data-devcheck]");
+  if(!cb||!S.draft) return;
+  const pid=cb.dataset.devcheck;
+  const row=cb.closest(".devrow");
+  const qty=row?row.querySelector("[data-devqty]"):null;
+  const wrap=qty?qty.closest(".devqty"):null;
+  if(cb.checked){
+    devOpen.add(pid);
+    if(wrap){ wrap.hidden=false; qty.focus(); }
+  } else {
+    devOpen.delete(pid);
+    if(!S.draft.devmer) S.draft.devmer={};
+    S.draft.devmer[pid]="";
+    if(wrap) wrap.hidden=true;
+    if(qty) qty.value="";
+    save();
+  }
+});
+document.getElementById("view-count").addEventListener("input",e=>{
+  const inp=e.target.closest("input[data-devqty]");
+  if(!inp||!S.draft) return;
+  if(!S.draft.devmer) S.draft.devmer={};
+  S.draft.devmer[inp.dataset.devqty]=inp.value;
+  save();
+});
 
 /* ============ Vista Hoja final ============ */
 function sheetTableHtml(rec,sec,readonly){
@@ -1674,7 +1731,7 @@ function sheetTableHtml(rec,sec,readonly){
       const vac=vaciasTotal(rec,p.id);
       h+='<td class="num">'+(vac===0?"":fmt(vac))+'</td>';
     }
-    h+='<td class="num"><b>'+fmt(inv)+'</b></td>';
+    h+='<td class="num" data-inv="'+p.id+'"><b>'+fmt(inv)+'</b></td>';
     h+='<td class="num">'+(readonly?esc(k===0?"":fmt(k)):'<input type="number" step="0.001" inputmode="decimal" data-kardex="'+p.id+'" value="'+(k===0?"":esc(fmt(k)))+'">')+'</td>';
     h+='<td class="num" data-dif="'+p.id+'"><b>'+fmt(dif)+'</b></td></tr>';
   });
@@ -1697,7 +1754,7 @@ function renderSheet(){
     +'<tr><td><b>FECHA:</b> '+esc(hdr.fecha||"")+'</td><td><b>HORA:</b> '+esc(hdr.hora||"")+'</td></tr></table>'
     +'<div class="muted" style="text-align:right">Actualizado Junio 2025 Op</div></div>';
   SECTIONS.forEach(sec=>{ h+=sheetTableHtml(rec,sec,readonly); });
-  h+='<p class="note">Las columnas de Tortillas son las especialidades de pizza (C = Sin quesear, Q = Queso, PP = Peperonni, H = Hawaiana, Sup = Suprema, 3C = 3 carnes, P/H = Peperonni/Hawaiana, P/S = Peperonni/Suprema, P/M = Peperonni/Mexicana, Pas = Pastor, Jam = Jamón, Mex = Mexicana, Cub = Cubana). Cada celda = cajas × tortillas por caja + sueltas, sumando cuarto frío y cocina. Por caja: Sin quesear — Familiar 3, Chica 2, Sartén 1; con especialidad — Familiar 2, Chica 2, Sartén 1. La Tortilla Canelo es un postre sin especialidades: 1 por caja, se cuenta por cajas y sueltas y su total va en la columna C. Cada caja es de una sola especialidad. INV de tortillas = suma de las 13 especialidades. Las cajas se calculan solas de las tortillas: Caja familiar QP = cajas de Tortilla Familiar + Tortilla Sartén + cajas vacías familiares; Caja Chica = cajas de Tortilla Chica + Tortilla Canelo + cajas vacías chicas (una caja con sueltas cuenta como caja). La columna DEV de las cajas muestra las cajas vacías contadas. DEV de tortillas y Dev/Mer se llenan a mano. En Ingredientes, la columna CF / COC muestra lo contado en cuarto frío y en cocina por producto. La explosión (Expl) muestra en Queso, Pasta p/ Pizza y Pepperoni los insumos que se usaron para las pizzas que quedaron en el inventario (tercer tercio de la casilla); en esos tres productos el INV es la suma de las tres partes: cuarto frío + cocina + explosión. DIF = INV − KARDEX.</p>'
+  h+='<p class="note">Las columnas de Tortillas son las especialidades de pizza (C = Sin quesear, Q = Queso, PP = Peperonni, H = Hawaiana, Sup = Suprema, 3C = 3 carnes, P/H = Peperonni/Hawaiana, P/S = Peperonni/Suprema, P/M = Peperonni/Mexicana, Pas = Pastor, Jam = Jamón, Mex = Mexicana, Cub = Cubana). Cada celda = cajas × tortillas por caja + sueltas, sumando cuarto frío y cocina. Por caja: Sin quesear — Familiar 3, Chica 2, Sartén 1; con especialidad — Familiar 2, Chica 2, Sartén 1. La Tortilla Canelo es un postre sin especialidades: 1 por caja, se cuenta por cajas y sueltas y su total va en la columna C. Cada caja es de una sola especialidad. INV de tortillas = suma de las 13 especialidades. Las cajas se calculan solas de las tortillas: Caja familiar QP = cajas de Tortilla Familiar + Tortilla Sartén + cajas vacías familiares; Caja Chica = cajas de Tortilla Chica + Tortilla Canelo + cajas vacías chicas (una caja con sueltas cuenta como caja). La columna DEV de las cajas muestra las cajas vacías contadas. DEV de tortillas se llena a mano. Dev/Mer (devolución o merma) se marca en el conteo con su cuadrito o se escribe aquí: la cantidad se suma al INV y también se ve en el PDF. En Ingredientes, la columna CF / COC muestra lo contado en cuarto frío y en cocina por producto. La explosión (Expl) muestra en Queso, Pasta p/ Pizza y Pepperoni los insumos que se usaron para las pizzas que quedaron en el inventario (tercer tercio de la casilla); en esos tres productos el INV es la suma de cuarto frío + cocina + explosión + Dev/Mer (en los demás, cuarto frío + cocina + Dev/Mer). DIF = INV − KARDEX.</p>'
     +'<div class="signs"><div>Firma del Gerente</div><div>Firma del Cajero</div><div>Firma del Gerente de zona / Auditor</div></div></div>';
   if(!readonly){
     h+='<button class="btn primary" id="btn-save-history">💾 Guardar en historial</button>';
@@ -1740,6 +1797,13 @@ document.getElementById("view-sheet").addEventListener("input",e=>{
     if(!S.draft.devmer) S.draft.devmer={};
     S.draft.devmer[inp.dataset.devmer]=inp.value;
     save();
+    /* Dev/Mer suma al INV: al escribirlo aquí se actualizan en vivo el
+       INV y el DIF de ese renglón (igual que el KARDEX). */
+    const pid=inp.dataset.devmer;
+    const invCell=document.querySelector('[data-inv="'+pid+'"]');
+    if(invCell) invCell.innerHTML="<b>"+fmt(invTotal(S.draft,pid))+"</b>";
+    const cell=document.querySelector('[data-dif="'+pid+'"]');
+    if(cell) cell.innerHTML="<b>"+fmt(difOf(S.draft,pid))+"</b>";
   }
 });
 function saveToHistory(){
@@ -1777,13 +1841,15 @@ function sheetText(rec){
         const um=(p.um||"").toLowerCase();
         // La explosión también suma al INV (tercer tercio): se muestra en
         // la suma solo cuando es distinta de 0, como en la hoja y el PDF.
+        // La Dev/Mer (devolución o merma) también suma al INV y se muestra
+        // solo cuando es distinta de 0.
         const exKey=EXPLOSION_PRODUCTS[p.id];
         const exVal=exKey?num(explosionOf(rec)[exKey]):0;
-        if(exVal!==0){
-          L.push(p.name+": CF "+fmt(partTotal(rec,p.id,1))+" "+um+" + Coc "+fmt(partTotal(rec,p.id,2))+" "+um+" + Expl "+fmt(exVal)+" "+um+" = "+fmt(inv)+" "+um+" | KARD "+fmt(k)+" | DIF "+fmt(inv-k));
-        } else {
-          L.push(p.name+": CF "+fmt(partTotal(rec,p.id,1))+" "+um+" + Coc "+fmt(partTotal(rec,p.id,2))+" "+um+" = "+fmt(inv)+" "+um+" | KARD "+fmt(k)+" | DIF "+fmt(inv-k));
-        }
+        const dm=num(rec.devmer&&rec.devmer[p.id]);
+        let det="CF "+fmt(partTotal(rec,p.id,1))+" "+um+" + Coc "+fmt(partTotal(rec,p.id,2))+" "+um;
+        if(exVal!==0) det+=" + Expl "+fmt(exVal)+" "+um;
+        if(dm!==0) det+=" + Dev/Mer "+fmt(dm)+" "+um;
+        L.push(p.name+": "+det+" = "+fmt(inv)+" "+um+" | KARD "+fmt(k)+" | DIF "+fmt(inv-k));
       } else {
         L.push(p.name+": INV "+fmt(inv)+" | KARD "+fmt(k)+" | DIF "+fmt(inv-k));
       }
@@ -2231,8 +2297,9 @@ function printSheetHtml(rec){
      empaca en ese tamaño va en una columna fija — la sartén en Cub (última
      especialidad) y el canelo en P/H —; la caja parcial se escribe junto a
      las enteras de su especialidad ("8-1"). En CAJAS, la columna DEV lleva
-     las cajas vacías contadas (en blanco si son 0); DEV de tortillas,
-     Dev/Mer y DIF/T van en blanco en el PDF (se llenan a mano en el papel). */
+     las cajas vacías contadas (en blanco si son 0); DEV de tortillas y
+     DIF/T van en blanco en el PDF (se llenan a mano en el papel). Dev/Mer
+     SÍ se muestra en el PDF cuando hay devolución (en blanco si es 0). */
   const cajaCells=(mainPid,extraPid,extraIdx)=>{
     return FLAVORS.map((f,i)=>{
       let boxes=[1,2].reduce((a,part)=>a+boxesFlavorPart(rec,mainPid,part,f.code),0);
@@ -2287,7 +2354,7 @@ function printSheetHtml(rec){
     const exVal=exKey?num(explosionOf(rec)[exKey]):0;
     h+='<tr><td class="pn">'+esc(p.name)+'</td><td class="um">'+esc(p.um)+'</td>'
       +'<td><span style="display:inline-block;width:33%;text-align:center">'+z(partTotal(rec,p.id,1))+'</span><span style="display:inline-block;width:33%;text-align:center">'+z(partTotal(rec,p.id,2))+'</span><span style="display:inline-block;width:33%;text-align:center">'+(exKey?fmt(exVal):"")+'</span></td>'
-      +'<td></td><td class="num"><b>'+z(inv)+'</b></td><td class="num">'+kOf(p.id)+'</td><td></td></tr>';
+      +'<td class="num">'+z(num(rec.devmer&&rec.devmer[p.id]))+'</td><td class="num"><b>'+z(inv)+'</b></td><td class="num">'+kOf(p.id)+'</td><td></td></tr>';
   });
   h+='</table>';
   // SALSAS + ADEREZOS y REFRESCOS + DESECHABLES, lado a lado
