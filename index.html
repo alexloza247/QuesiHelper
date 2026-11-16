@@ -897,6 +897,35 @@ function cajasFamiliarTotal(rec){
 function cajasChicaTotal(rec){
   return [1,2].reduce((a,part)=>a+boxesOfTypePart(rec,"tortilla-chica",part)+boxesOfTypePart(rec,"tortilla-canelo",part),0);
 }
+/* Cajas enteras de un tipo de tortilla por especialidad en una parte
+   (conteo por especialidades, v1.1). Sin desglose (borrador v1) vale 0. */
+function boxesFlavorPart(rec,pid,part,code){
+  if(!rec) return 0;
+  const d=(rec.parts[String(part)]&&rec.parts[String(part)][pid])||{};
+  if(!partHasFlavors(rec,pid,part)) return 0;
+  const fl=(d.flavors&&d.flavors[code])||{};
+  return num(fl.cajas);
+}
+/* Cajas parciales (con sueltas) de un tipo de tortilla por especialidad
+   en una parte: 1 si esa celda tiene sueltas, 0 si no. */
+function partialFlavorPart(rec,pid,part,code){
+  if(!rec) return 0;
+  const d=(rec.parts[String(part)]&&rec.parts[String(part)][pid])||{};
+  if(!partHasFlavors(rec,pid,part)) return 0;
+  const fl=(d.flavors&&d.flavors[code])||{};
+  return num(fl.sueltas)>0?1:0;
+}
+/* Total de cajas parciales de un tipo de tortilla en una parte (todas las
+   especialidades). */
+function partialsOfTypePart(rec,pid,part){
+  if(!rec) return 0;
+  const d=(rec.parts[String(part)]&&rec.parts[String(part)][pid])||{};
+  if(partHasFlavors(rec,pid,part)){
+    const fl=d.flavors||{};
+    return FLAVORS.reduce((a,f)=>a+((fl[f.code]&&num(fl[f.code].sueltas)>0)?1:0),0);
+  }
+  return num(d.sueltas)>0?1:0;
+}
 /* Tipos de bolsa de un no contable. Config vieja (un solo envase) migra a
    un tipo de bolsa con ese peso. */
 function bagTypesOf(cfg){
@@ -1557,22 +1586,46 @@ document.getElementById("view-config").addEventListener("change",e=>{
 /* Replica el diseño de la hojita de papel: mismo encabezado (Sucursal/Turno/
    Fecha/Hora + logo), mismo orden de secciones, SALSAS con ADEREZOS y
    REFRESCOS con DESECHABLES lado a lado, y las firmas. La columna CF/COC no
-   va aquí (el papel no la tiene): solo queda en la vista de la app. En CAJAS
-   el papel tiene celdas en blanco sin encabezado: ahí van INV y KARDEX. */
+   va aquí (el papel no la tiene): solo queda en la vista de la app; en su
+   lugar, en el espacio en blanco de cada renglón van los dos números
+   contados en cuarto frío y en cocina, sin etiquetas, como los escribe la
+   gerenta. En CAJAS van el desglose por especialidad y el total de sartén
+   (en Cub) o canelo (en P/H), con la caja parcial como "8-1". DEV, Dev/Mer
+   y DIF/T van en blanco (se llenan a mano en el papel) y las casillas con
+   valor 0 también van vacías. */
 function printCols(widths){
   return "<colgroup>"+widths.map(w=>'<col style="width:'+w+'%">').join("")+"</colgroup>";
 }
 function printSheetHtml(rec){
   const hdr=rec.header||{};
-  const kOf=(pid)=>{const k=num(rec.kardex&&rec.kardex[pid]);return k===0?"":fmt(k);};
-  const devOf=(pid)=>{const d=rec.dev&&rec.dev[pid];return (d==null||d==="")?"":fmt(num(d));};
-  const dmOf=(pid)=>{const d=rec.devmer&&rec.devmer[pid];return (d==null||d==="")?"":fmt(num(d));};
+  // En el PDF las casillas con valor 0 van vacías (como las deja la gerenta
+  // en el papel). z() aplica esa regla a cualquier número.
+  const z=(v)=>{const s=fmt(v);return s==="0"?"":s;};
+  const kOf=(pid)=>z(num(rec.kardex&&rec.kardex[pid]));
   const flVal=(pid,code)=>{
     const stored=rec.flavors&&rec.flavors[pid]?rec.flavors[pid][code]:undefined;
     const v=(partHasFlavors(rec,pid,1)||partHasFlavors(rec,pid,2))?flavorTotal(rec,pid,code):(stored==null||stored===""?0:stored);
-    return fmt(num(v));
+    return z(num(v));
   };
-  const empty=(n)=>"<td></td>".repeat(n);
+  /* Desglose de cajas como lo escribe la gerenta en el papel: las cajas del
+     tipo principal por especialidad en su columna; el total del tipo que se
+     empaca en ese tamaño va en una columna fija — la sartén en Cub (última
+     especialidad) y el canelo en P/H —; la caja parcial se escribe junto a
+     las enteras de su especialidad ("8-1"). DEV, Dev/Mer y DIF/T van en
+     blanco en el PDF (se llenan a mano en el papel). */
+  const cajaCells=(mainPid,extraPid,extraIdx)=>{
+    return FLAVORS.map((f,i)=>{
+      let boxes=[1,2].reduce((a,part)=>a+boxesFlavorPart(rec,mainPid,part,f.code),0);
+      let partials=[1,2].reduce((a,part)=>a+partialFlavorPart(rec,mainPid,part,f.code),0);
+      if(i===extraIdx){
+        const extraFull=[1,2].reduce((a,part)=>a+boxesOfTypePart(rec,extraPid,part)-partialsOfTypePart(rec,extraPid,part),0);
+        const extraPart=[1,2].reduce((a,part)=>a+partialsOfTypePart(rec,extraPid,part),0);
+        boxes+=extraFull; partials+=extraPart;
+      }
+      if(boxes===0&&partials===0) return '<td class="num"></td>';
+      return '<td class="num">'+(partials>0?boxes+"-"+partials:boxes)+'</td>';
+    }).join("");
+  };
   const wT=[23,7].concat(Array(13).fill(3.77)).concat([5,7,9]);
   const wI=[23,7,40,8,7.5,8,6.5];
   const wP=[42,10,12,12,12,12];
@@ -1588,7 +1641,8 @@ function printSheetHtml(rec){
     +'<tr><th>PRODUCTOS</th><th>UM</th>'+("<th></th>").repeat(16)+'</tr>'
     +'<tr class="band"><th>CAJAS</th><th>UM</th>'+("<th></th>").repeat(16)+'</tr>';
   PRODUCTS.filter(p=>p.sec==="CAJAS").forEach(p=>{
-    h+='<tr><td class="pn">'+esc(p.name)+'</td><td class="um">'+esc(p.um)+'</td>'+empty(14)+'<td class="num">'+fmt(invTotal(rec,p.id))+'</td><td class="num">'+kOf(p.id)+'</td></tr>';
+    const cells=p.id==="caja-familiar-qp"?cajaCells("tortilla-familiar","tortilla-sarten",12):cajaCells("tortilla-chica","tortilla-canelo",6);
+    h+='<tr><td class="pn">'+esc(p.name)+'</td><td class="um">'+esc(p.um)+'</td>'+cells+'<td></td><td class="num">'+z(invTotal(rec,p.id))+'</td><td class="num">'+kOf(p.id)+'</td></tr>';
   });
   h+='</table>';
   // TORTILLAS
@@ -1597,7 +1651,7 @@ function printSheetHtml(rec){
   PRODUCTS.filter(p=>p.sec==="TORTILLAS").forEach(p=>{
     h+='<tr><td class="pn">'+esc(p.name)+'</td><td class="um">'+esc(p.um)+'</td>'
       +FLAVORS.map(f=>'<td class="num">'+flVal(p.id,f.code)+'</td>').join("")
-      +'<td class="num">'+devOf(p.id)+'</td><td class="num"><b>'+fmt(invTotal(rec,p.id))+'</b></td><td class="num">'+kOf(p.id)+'</td></tr>';
+      +'<td></td><td class="num"><b>'+z(invTotal(rec,p.id))+'</b></td><td class="num">'+kOf(p.id)+'</td></tr>';
   });
   h+='</table>';
   // INGREDIENTES
@@ -1605,8 +1659,9 @@ function printSheetHtml(rec){
     +'<tr class="band"><th>INGREDIENTES</th><th>UM</th><th></th><th>Dev/Mer</th><th>INV.</th><th>KARDEX</th><th>DIF/ T</th></tr>';
   PRODUCTS.filter(p=>p.sec==="INGREDIENTES").forEach(p=>{
     const inv=invTotal(rec,p.id);
-    h+='<tr><td class="pn">'+esc(p.name)+'</td><td class="um">'+esc(p.um)+'</td><td></td>'
-      +'<td class="num">'+dmOf(p.id)+'</td><td class="num"><b>'+fmt(inv)+'</b></td><td class="num">'+kOf(p.id)+'</td><td class="num"><b>'+fmt(difOf(rec,p.id))+'</b></td></tr>';
+    h+='<tr><td class="pn">'+esc(p.name)+'</td><td class="um">'+esc(p.um)+'</td>'
+      +'<td><span style="display:inline-block;width:49%;text-align:left">'+z(partTotal(rec,p.id,1))+'</span><span style="display:inline-block;width:49%;text-align:right">'+z(partTotal(rec,p.id,2))+'</span></td>'
+      +'<td></td><td class="num"><b>'+z(inv)+'</b></td><td class="num">'+kOf(p.id)+'</td><td></td></tr>';
   });
   h+='</table>';
   // SALSAS + ADEREZOS y REFRESCOS + DESECHABLES, lado a lado
@@ -1614,7 +1669,7 @@ function printSheetHtml(rec){
     let t='<table class="ptable">'+printCols(wP)
       +'<tr class="band"><th>'+title+'</th><th>UM</th><th></th><th></th><th>'+invLabel+'</th><th>'+kardLabel+'</th></tr>';
     PRODUCTS.filter(p=>p.sec===sec).forEach(p=>{
-      t+='<tr><td class="pn">'+esc(p.name)+'</td><td class="um">'+esc(p.um)+'</td><td></td><td></td><td class="num"><b>'+fmt(invTotal(rec,p.id))+'</b></td><td class="num">'+kOf(p.id)+'</td></tr>';
+      t+='<tr><td class="pn">'+esc(p.name)+'</td><td class="um">'+esc(p.um)+'</td><td>'+z(partTotal(rec,p.id,1))+'</td><td class="num">'+z(partTotal(rec,p.id,2))+'</td><td class="num"><b>'+z(invTotal(rec,p.id))+'</b></td><td class="num">'+kOf(p.id)+'</td></tr>';
     });
     return t+'</table>';
   }
@@ -1636,7 +1691,7 @@ function renderPrintSheet(rec){
 /* ============ Inicio ============ */
 load();
 show("count");
-window.QH={get S(){return S;},PRODUCTS,SECTIONS,FLAVORS,partTotal,invTotal,difOf,fmt,defaultCfg,sheetText,show,renderCount,renderSheet,renderHistory,renderConfig,flavorTotal,flavorPartTotal,tortillaPerBox,boxesPartTotal,partHasFlavors,bagTypesOf,printSheetHtml,renderPrintSheet,exportCfgText,importCfg,shareCfg,cleanCfg,b64encode,b64decode,compatCfg};
+window.QH={get S(){return S;},PRODUCTS,SECTIONS,FLAVORS,partTotal,invTotal,difOf,fmt,defaultCfg,sheetText,show,renderCount,renderSheet,renderHistory,renderConfig,flavorTotal,flavorPartTotal,tortillaPerBox,boxesPartTotal,partHasFlavors,bagTypesOf,boxesFlavorPart,partialFlavorPart,partialsOfTypePart,printSheetHtml,renderPrintSheet,exportCfgText,importCfg,shareCfg,cleanCfg,b64encode,b64decode,compatCfg};
 </script>
 </body>
 </html>
