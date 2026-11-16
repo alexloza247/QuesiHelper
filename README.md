@@ -40,6 +40,8 @@ Las columnas de las tortillas son las especialidades de pizza: C = Sin quesear, 
 
 Desde la hoja puedes **guardarla en el Historial**, **compartirla** (texto listo para WhatsApp) o **copiarla**.
 
+**Imprimir en PDF igualita a la de papel:** el botón **"🖨️ Imprimir / PDF"** abre el diálogo de impresión del navegador (en Chrome del celular, elige **"Guardar como PDF"**). La hoja que sale es igualita a la de papel: mismo encabezado (Sucursal, Turno, Fecha, Hora y logo), mismo orden de secciones, Salsas con Aderezos y Refrescos con Desechables lado a lado, y las firmas al final; cabe en una sola página tamaño carta. La columna **CF / COC no sale en el PDF** (el papel no la tiene): solo se ve en la vista de la app. No se necesita ninguna app ni librería extra.
+
 ### 4. Historial
 En **Historial** se guardan los inventarios por fecha, turno y sucursal. Puedes ver la hoja guardada y borrarla.
 
@@ -55,4 +57,4 @@ En **Historial** se guardan los inventarios por fecha, turno y sucursal. Puedes 
 
 ## Estado
 
-v1.1 — web app (sin APK por ahora). Regla de tortillas confirmada: cajas por especialidad sin mezclar, por caja según tipo y especialidad, INV = suma de las 13 especialidades. Báscula con recipiente solo en cocina; un no contable puede tener varios tipos de bolsa (mismo renglón en la hoja). Pendiente por confirmar con el usuario: qué se anota en DEV y Dev/Mer.
+v1.1 — web app (sin APK por ahora). Regla de tortillas confirmada: cajas por especialidad sin mezclar, por caja según tipo y especialidad, INV = suma de las 13 especialidades. Báscula con recipiente solo en cocina; un no contable puede tener varios tipos de bolsa (mismo renglón en la hoja). La Hoja final se puede imprimir en PDF igualita a la de papel (botón "Imprimir / PDF", una página carta). Pendiente por confirmar con el usuario: qué se anota en DEV y Dev/Mer.

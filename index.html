@@ -75,6 +75,35 @@
   #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#26221f;color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:50;max-width:92vw;text-align:center}
   #toast.show{opacity:1}
   .pill{display:inline-block;background:#fef3c7;color:#92400e;border-radius:20px;padding:2px 9px;font-size:12px;font-weight:700}
+  /* Vista de impresión: solo existe para imprimir/PDF, nunca se ve en pantalla */
+  #printSheet{display:none}
+  @media print{
+    @page{size:letter portrait;margin:5mm}
+    body{background:#fff;color:#000}
+    header,nav,main,#toast{display:none!important}
+    #printSheet{display:block!important;font-family:Arial,Helvetica,sans-serif;color:#000}
+    #printSheet .psheet{border:2px solid #000;padding:4px 6px}
+    #printSheet table.phead{width:100%;border-collapse:collapse;margin-bottom:2px}
+    #printSheet table.phead td{border:1px solid #000;padding:2px 5px;font-size:10px;vertical-align:middle}
+    #printSheet table.phead td b{font-size:9.5px}
+    #printSheet table.phead td.plogo{text-align:center;width:24%;vertical-align:middle}
+    #printSheet .pupd{text-align:right;font-size:8px}
+    #printSheet table.ptable{width:100%;border-collapse:collapse;margin:0 0 2px;table-layout:fixed}
+    #printSheet table.ptable th,#printSheet table.ptable td{border:1px solid #000;padding:2px 3px;font-size:9.5px;line-height:1.2}
+    #printSheet table.ptable th{text-align:center;font-weight:700}
+    #printSheet table.ptable td.pn{text-align:left}
+    #printSheet table.ptable td.um{text-align:center;font-size:8.5px}
+    #printSheet table.ptable td.num{text-align:right;white-space:nowrap}
+    #printSheet table.ptable tr.band th{background:#d9d9d9;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+    #printSheet table.ppair{width:100%;border-collapse:collapse;margin:0 0 2px;table-layout:fixed}
+    #printSheet table.ppair>tbody>tr>td{border:none;padding:0 2px;vertical-align:top}
+    #printSheet table.ppair>tbody>tr>td:first-child{padding-left:0}
+    #printSheet table.ppair>tbody>tr>td:last-child{padding-right:0}
+    #printSheet table.psigns{width:100%;border-collapse:collapse;margin-top:20mm}
+    #printSheet table.psigns td{border:none;text-align:center;font-size:9px;padding:0 12px}
+    #printSheet table.psigns .ln{border-top:1px solid #000}
+    #printSheet table.psigns .lb{padding-top:2px}
+  }
 </style>
 </head>
 <body>
@@ -94,6 +123,7 @@
   <section id="view-history" hidden></section>
   <section id="view-config" hidden></section>
 </main>
+<div id="printSheet"></div>
 <div id="toast"></div>
 <script>
 "use strict";
@@ -525,14 +555,20 @@ function renderSheet(){
     h+='<button class="btn primary" id="btn-save-history">💾 Guardar en historial</button>';
   }
   h+='<button class="btn secondary" id="btn-share">📤 Compartir hoja</button>'
-    +'<button class="btn secondary" id="btn-copy">📋 Copiar hoja</button>';
+    +'<button class="btn secondary" id="btn-copy">📋 Copiar hoja</button>'
+    +'<button class="btn secondary" id="btn-print">🖨️ Imprimir / PDF</button>';
   if(readonly) h+='<button class="btn ghost" id="btn-back-history">← Volver al historial</button>';
   else h+='<button class="btn ghost" id="btn-back-count">← Volver al conteo</button>';
   el.innerHTML=h;
+  renderPrintSheet(rec);
   const sh=document.getElementById("btn-save-history");
   if(sh) sh.addEventListener("click",saveToHistory);
   document.getElementById("btn-share").addEventListener("click",shareSheet);
   document.getElementById("btn-copy").addEventListener("click",copySheet);
+  document.getElementById("btn-print").addEventListener("click",()=>{
+    renderPrintSheet(currentRec());
+    window.print();
+  });
   const bk=document.getElementById("btn-back-history");
   if(bk) bk.addEventListener("click",()=>{ui.histId=null;show("history");});
   const bc=document.getElementById("btn-back-count");
@@ -762,10 +798,90 @@ document.getElementById("view-config").addEventListener("change",e=>{
   }
 });
 
+/* ============ Vista de impresión (hoja igual a la de papel, para PDF) ============ */
+/* Replica el diseño de la hojita de papel: mismo encabezado (Sucursal/Turno/
+   Fecha/Hora + logo), mismo orden de secciones, SALSAS con ADEREZOS y
+   REFRESCOS con DESECHABLES lado a lado, y las firmas. La columna CF/COC no
+   va aquí (el papel no la tiene): solo queda en la vista de la app. En CAJAS
+   el papel tiene celdas en blanco sin encabezado: ahí van INV y KARDEX. */
+function printCols(widths){
+  return "<colgroup>"+widths.map(w=>'<col style="width:'+w+'%">').join("")+"</colgroup>";
+}
+function printSheetHtml(rec){
+  const hdr=rec.header||{};
+  const kOf=(pid)=>{const k=num(rec.kardex&&rec.kardex[pid]);return k===0?"":fmt(k);};
+  const devOf=(pid)=>{const d=rec.dev&&rec.dev[pid];return (d==null||d==="")?"":fmt(num(d));};
+  const dmOf=(pid)=>{const d=rec.devmer&&rec.devmer[pid];return (d==null||d==="")?"":fmt(num(d));};
+  const flVal=(pid,code)=>{
+    const stored=rec.flavors&&rec.flavors[pid]?rec.flavors[pid][code]:undefined;
+    const v=(partHasFlavors(rec,pid,1)||partHasFlavors(rec,pid,2))?flavorTotal(rec,pid,code):(stored==null||stored===""?0:stored);
+    return fmt(num(v));
+  };
+  const empty=(n)=>"<td></td>".repeat(n);
+  const wT=[23,7].concat(Array(13).fill(3.77)).concat([5,7,9]);
+  const wI=[23,7,40,8,7.5,8,6.5];
+  const wP=[42,10,12,12,12,12];
+  let h='<div class="psheet">';
+  // Encabezado
+  h+='<table class="phead"><tr>'
+    +'<td style="width:38%"><b>SUCURSAL:</b> '+esc(hdr.sucursal||"")+'</td>'
+    +'<td style="width:38%"><b>TURNO:</b> '+esc(hdr.turno||"")+'</td>'
+    +'<td class="plogo" rowspan="2"><svg width="66" height="52" viewBox="0 0 100 78" xmlns="http://www.w3.org/2000/svg"><polygon points="3,3 97,3 50,75" fill="none" stroke="#000" stroke-width="2"/><text x="50" y="20" text-anchor="middle" font-size="10" font-weight="bold" font-family="Arial,sans-serif">FANATICOS</text><text x="50" y="33" text-anchor="middle" font-size="8" font-family="Arial,sans-serif">DE LA</text><text x="50" y="50" text-anchor="middle" font-size="12" font-weight="bold" font-family="Arial,sans-serif">PIZZA</text></svg><div class="pupd">Actualizado Junio 2025 Op</div></td></tr>'
+    +'<tr><td><b>FECHA:</b> '+esc(hdr.fecha||"")+'</td><td><b>HORA:</b> '+esc(hdr.hora||"")+'</td></tr></table>';
+  // CAJAS: misma rejilla que TORTILLAS (18 columnas); INV y KARDEX en sus columnas
+  h+='<table class="ptable">'+printCols(wT)
+    +'<tr><th>PRODUCTOS</th><th>UM</th>'+("<th></th>").repeat(16)+'</tr>'
+    +'<tr class="band"><th>CAJAS</th><th>UM</th>'+("<th></th>").repeat(16)+'</tr>';
+  PRODUCTS.filter(p=>p.sec==="CAJAS").forEach(p=>{
+    h+='<tr><td class="pn">'+esc(p.name)+'</td><td class="um">'+esc(p.um)+'</td>'+empty(14)+'<td class="num">'+fmt(invTotal(rec,p.id))+'</td><td class="num">'+kOf(p.id)+'</td></tr>';
+  });
+  h+='</table>';
+  // TORTILLAS
+  h+='<table class="ptable">'+printCols(wT)
+    +'<tr class="band"><th>TORTILLAS</th><th>UM</th>'+FLAVORS.map(f=>"<th>"+f.code+"</th>").join("")+'<th>DEV</th><th>INV</th><th>KARDEX</th></tr>';
+  PRODUCTS.filter(p=>p.sec==="TORTILLAS").forEach(p=>{
+    h+='<tr><td class="pn">'+esc(p.name)+'</td><td class="um">'+esc(p.um)+'</td>'
+      +FLAVORS.map(f=>'<td class="num">'+flVal(p.id,f.code)+'</td>').join("")
+      +'<td class="num">'+devOf(p.id)+'</td><td class="num"><b>'+fmt(invTotal(rec,p.id))+'</b></td><td class="num">'+kOf(p.id)+'</td></tr>';
+  });
+  h+='</table>';
+  // INGREDIENTES
+  h+='<table class="ptable">'+printCols(wI)
+    +'<tr class="band"><th>INGREDIENTES</th><th>UM</th><th></th><th>Dev/Mer</th><th>INV.</th><th>KARDEX</th><th>DIF/ T</th></tr>';
+  PRODUCTS.filter(p=>p.sec==="INGREDIENTES").forEach(p=>{
+    const inv=invTotal(rec,p.id);
+    h+='<tr><td class="pn">'+esc(p.name)+'</td><td class="um">'+esc(p.um)+'</td><td></td>'
+      +'<td class="num">'+dmOf(p.id)+'</td><td class="num"><b>'+fmt(inv)+'</b></td><td class="num">'+kOf(p.id)+'</td><td class="num"><b>'+fmt(difOf(rec,p.id))+'</b></td></tr>';
+  });
+  h+='</table>';
+  // SALSAS + ADEREZOS y REFRESCOS + DESECHABLES, lado a lado
+  function pairTable(sec,title,invLabel,kardLabel){
+    let t='<table class="ptable">'+printCols(wP)
+      +'<tr class="band"><th>'+title+'</th><th>UM</th><th></th><th></th><th>'+invLabel+'</th><th>'+kardLabel+'</th></tr>';
+    PRODUCTS.filter(p=>p.sec===sec).forEach(p=>{
+      t+='<tr><td class="pn">'+esc(p.name)+'</td><td class="um">'+esc(p.um)+'</td><td></td><td></td><td class="num"><b>'+fmt(invTotal(rec,p.id))+'</b></td><td class="num">'+kOf(p.id)+'</td></tr>';
+    });
+    return t+'</table>';
+  }
+  h+='<table class="ppair"><tr><td>'+pairTable("SALSAS","SALSAS","INV","KARD")+'</td><td>'+pairTable("ADEREZOS","ADEREZOS","INV.","KARDEX")+'</td></tr></table>';
+  h+='<table class="ppair"><tr><td>'+pairTable("REFRESCOS","REFRESCOS","INV","KARD")+'</td><td>'+pairTable("DESECHABLES","DESECHABLES","INV","KARDEX")+'</td></tr></table>';
+  // Firmas
+  h+='<table class="psigns"><tr>'
+    +'<td><div class="ln"></div><div class="lb">Firma del Gerente</div></td>'
+    +'<td><div class="ln"></div><div class="lb">Firma del Cajero</div></td>'
+    +'<td><div class="ln"></div><div class="lb">Firma del Gerente de zona / Auditor</div></td>'
+    +'</tr></table>';
+  return h+'</div>';
+}
+function renderPrintSheet(rec){
+  const el=document.getElementById("printSheet");
+  if(el) el.innerHTML=rec?printSheetHtml(rec):"";
+}
+
 /* ============ Inicio ============ */
 load();
 show("count");
-window.QH={get S(){return S;},PRODUCTS,SECTIONS,FLAVORS,partTotal,invTotal,difOf,fmt,defaultCfg,sheetText,show,renderCount,renderSheet,renderHistory,renderConfig,flavorTotal,flavorPartTotal,tortillaPerBox,boxesPartTotal,partHasFlavors,bagTypesOf};
+window.QH={get S(){return S;},PRODUCTS,SECTIONS,FLAVORS,partTotal,invTotal,difOf,fmt,defaultCfg,sheetText,show,renderCount,renderSheet,renderHistory,renderConfig,flavorTotal,flavorPartTotal,tortillaPerBox,boxesPartTotal,partHasFlavors,bagTypesOf,printSheetHtml,renderPrintSheet};
 </script>
 </body>
 </html>
