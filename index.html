@@ -228,6 +228,11 @@ function load(){
       }
     }
   }catch(e){}
+  compatCfg();
+}
+/* Normalización de la configuración: rellena campos faltantes con los
+   valores por defecto. Se usa igual al cargar y al importar. */
+function compatCfg(){
   // Compatibilidad: configs guardadas en v1 no tienen qtyPerPackageEsp
   PRODUCTS.forEach(p=>{
     if(p.sec==="TORTILLAS"&&S.cfg[p.id]&&S.cfg[p.id].inPackage&&S.cfg[p.id].qtyPerPackageEsp==null) S.cfg[p.id].qtyPerPackageEsp=TORTILLA_PER_BOX_ESP[p.id];
@@ -728,6 +733,95 @@ function renderHistory(){
   }));
 }
 
+/* ============ Compartir / importar configuración ============ */
+/* La configuración se comparte como un texto de una sola línea (para que no
+   se rompa al pasarlo por WhatsApp): prefijo reconocible + JSON compacto en
+   base64. Incluye todo lo de Configuración: grupos, cantidades por paquete
+   (las dos de tortillas), tipos de bolsa, envases con su unidad y recipiente.
+   La sucursal/turno/fecha/hora NO son configuración: son del encabezado. */
+const CFG_PREFIX="QUESIHELPER-CONFIG:";
+function b64encode(str){
+  return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g,function(m,p){return String.fromCharCode(parseInt(p,16));}));
+}
+function b64decode(b64){
+  return decodeURIComponent(atob(b64).split("").map(function(c){return "%"+("00"+c.charCodeAt(0).toString(16)).slice(-2);}).join(""));
+}
+function exportCfgText(){
+  return CFG_PREFIX+b64encode(JSON.stringify({v:1,cfg:S.cfg}));
+}
+function shareCfg(){
+  const t=exportCfgText();
+  const ta=document.getElementById("cfg-export-text");
+  if(ta) ta.value=t;
+  if(navigator.share){
+    navigator.share({title:"Configuración QuesiHelper",text:t}).catch(()=>{});
+  } else {
+    copyText(t,"Configuración copiada — pégala en WhatsApp");
+  }
+}
+/* Limpia una configuración importada: solo productos conocidos, solo campos
+   conocidos y valores válidos. Lo desconocido se ignora y lo que falta se
+   rellena con los valores por defecto al aplicar (vía compatCfg). */
+function cleanCfg(raw){
+  if(!raw||typeof raw!=="object") return null;
+  const cfgObj=(raw.cfg&&typeof raw.cfg==="object")?raw.cfg:raw;
+  const out={};
+  let any=false;
+  PRODUCTS.forEach(p=>{
+    const c=cfgObj[p.id];
+    if(!c||typeof c!=="object") return;
+    any=true;
+    const d={};
+    if(c.group==="contable"||c.group==="nocontable") d.group=c.group;
+    if(typeof c.inPackage==="boolean") d.inPackage=c.inPackage;
+    if(typeof c.useTare==="boolean") d.useTare=c.useTare;
+    ["qtyPerPackage","qtyPerPackageEsp","envSize","tareWeight"].forEach(f=>{
+      if(c[f]==null) d[f]=null;
+      else { const n=parseFloat(c[f]); if(isFinite(n)) d[f]=n; }
+    });
+    if(c.envUnit==="kg"||c.envUnit==="l"||c.envUnit==="porción") d.envUnit=c.envUnit;
+    if(Array.isArray(c.bagTypes)){
+      d.bagTypes=c.bagTypes.filter(t=>t&&typeof t==="object").map(t=>({
+        name:(typeof t.name==="string"?t.name.slice(0,30):""),
+        size:(t.size==null?null:(isFinite(parseFloat(t.size))?parseFloat(t.size):null))
+      }));
+    }
+    out[p.id]=d;
+  });
+  return any?out:null;
+}
+function importCfg(){
+  const ta=document.getElementById("cfg-import-text");
+  const msg=document.getElementById("cfg-import-msg");
+  const say=(t,ok)=>{ if(msg){msg.textContent=t;msg.style.color=ok?"#15803d":"#b91c1c";} };
+  if(!ta) return;
+  const raw=ta.value.trim();
+  if(raw.indexOf(CFG_PREFIX)!==0){
+    say("Ese texto no es una configuración de QuesiHelper. Pega el texto completo que empieza con "+CFG_PREFIX);
+    return;
+  }
+  let parsed;
+  try{
+    parsed=JSON.parse(b64decode(raw.slice(CFG_PREFIX.length).replace(/\s+/g,"")));
+  }catch(e){
+    say("No se pudo leer la configuración: el texto está incompleto o dañado. Revisa que lo hayas pegado completo.");
+    return;
+  }
+  const cleaned=cleanCfg(parsed);
+  if(!cleaned){
+    say("La configuración no trae ningún insumo conocido. No se cambió nada.");
+    return;
+  }
+  if(!confirm("¿Reemplazar la configuración actual con la importada? Se borra lo que tengas configurado.")) return;
+  const base=defaultCfg();
+  PRODUCTS.forEach(p=>{ if(cleaned[p.id]) Object.assign(base[p.id],cleaned[p.id]); });
+  S.cfg=base;
+  compatCfg();
+  save();
+  renderConfig();
+  toast("Configuración importada");
+}
+
 /* ============ Vista Configuración ============ */
 function cfgGroupDefaults(group){
   if(group==="contable") return {group:"contable",inPackage:false,qtyPerPackage:null,qtyPerPackageEsp:null,envSize:null,envUnit:"kg",useTare:false,tareWeight:null};
@@ -777,6 +871,15 @@ function renderConfig(){
     });
   });
   h+='<button class="btn secondary" id="btn-reset-cfg">Restablecer valores iniciales</button>';
+  h+='<h3 class="sec">Compartir configuración</h3>'
+    +'<div class="card"><p class="muted">Comparte tu configuración con otra persona que use la app, para que no tenga que configurarlo todo de cero: grupos contable/no contable, cantidades por paquete (las dos de tortillas), tipos de bolsa, envases con su unidad y recipientes.</p>'
+    +'<button class="btn primary" id="btn-share-cfg">📤 Compartir configuración</button>'
+    +'<label class="f">Texto de tu configuración (también se copia al compartir)</label>'
+    +'<textarea id="cfg-export-text" readonly rows="3" style="width:100%;padding:10px 9px;font-size:13px;border:1px solid #d6d3d1;border-radius:8px;background:#fff;color:#26221f" placeholder="Toca «Compartir configuración» para generarlo"></textarea>'
+    +'<label class="f">Importar configuración (pega aquí el texto que te compartieron)</label>'
+    +'<textarea id="cfg-import-text" rows="3" style="width:100%;padding:10px 9px;font-size:13px;border:1px solid #d6d3d1;border-radius:8px;background:#fff;color:#26221f" placeholder="QUESIHELPER-CONFIG:..."></textarea>'
+    +'<p id="cfg-import-msg" class="note" style="margin:6px 0 0"></p>'
+    +'<button class="btn secondary" id="btn-import-cfg">📥 Importar configuración</button></div>';
   el.innerHTML=h;
   el.querySelectorAll("[data-move]").forEach(b=>b.addEventListener("click",()=>{
     const pid=b.dataset.move;
@@ -804,6 +907,8 @@ function renderConfig(){
       S.cfg=defaultCfg(); save(); renderConfig(); toast("Configuración restablecida");
     }
   });
+  document.getElementById("btn-share-cfg").addEventListener("click",shareCfg);
+  document.getElementById("btn-import-cfg").addEventListener("click",importCfg);
 }
 document.getElementById("view-config").addEventListener("input",e=>{
   const inp=e.target.closest("[data-cfg-field]");
@@ -926,7 +1031,7 @@ function renderPrintSheet(rec){
 /* ============ Inicio ============ */
 load();
 show("count");
-window.QH={get S(){return S;},PRODUCTS,SECTIONS,FLAVORS,partTotal,invTotal,difOf,fmt,defaultCfg,sheetText,show,renderCount,renderSheet,renderHistory,renderConfig,flavorTotal,flavorPartTotal,tortillaPerBox,boxesPartTotal,partHasFlavors,bagTypesOf,printSheetHtml,renderPrintSheet};
+window.QH={get S(){return S;},PRODUCTS,SECTIONS,FLAVORS,partTotal,invTotal,difOf,fmt,defaultCfg,sheetText,show,renderCount,renderSheet,renderHistory,renderConfig,flavorTotal,flavorPartTotal,tortillaPerBox,boxesPartTotal,partHasFlavors,bagTypesOf,printSheetHtml,renderPrintSheet,exportCfgText,importCfg,shareCfg,cleanCfg,b64encode,b64decode,compatCfg};
 </script>
 </body>
 </html>
