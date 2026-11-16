@@ -7,10 +7,14 @@
 <style>
   *{box-sizing:border-box}
   body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:#fff7ef;color:#26221f;font-size:15px;line-height:1.4}
-  header{background:#b91c1c;color:#fff;padding:14px 16px 12px;position:sticky;top:0;z-index:20}
+  /* El encabezado (título + pestañas) queda fijo arriba al bajar: un solo
+     contenedor sticky con los dos, para que las pestañas no se escondan
+     detrás del título al deslizar. En impresión no se ve (ver @media print). */
+  #topbar{position:sticky;top:0;z-index:20}
+  header{background:#b91c1c;color:#fff;padding:14px 16px 12px}
   header h1{margin:0;font-size:20px;line-height:1.2}
   header p{margin:2px 0 0;font-size:12.5px;opacity:.9}
-  nav{display:flex;gap:6px;padding:8px 10px;background:#7f1d1d;position:sticky;top:0;z-index:19}
+  nav{display:flex;gap:6px;padding:8px 10px;background:#7f1d1d}
   nav button{flex:1;border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;border-radius:8px;padding:9px 4px;font-size:13.5px;cursor:pointer}
   nav button.on{background:#fff;color:#7f1d1d;font-weight:700}
   main{max-width:860px;margin:0 auto;padding:14px 12px 90px}
@@ -81,6 +85,7 @@
     @page{size:letter portrait;margin:5mm}
     body{background:#fff;color:#000}
     header,nav,main,#toast{display:none!important}
+    #topbar{display:none!important}
     #printSheet{display:block!important;font-family:Arial,Helvetica,sans-serif;color:#000}
     #printSheet .psheet{border:2px solid #000;padding:4px 6px}
     #printSheet table.phead{width:100%;border-collapse:collapse;margin-bottom:2px}
@@ -107,6 +112,7 @@
 </style>
 </head>
 <body>
+<div id="topbar">
 <header>
   <h1>🍕 QuesiHelper</h1>
   <p>Inventario del día · Fanáticos de la Pizza</p>
@@ -117,6 +123,7 @@
   <button data-view="history">Historial</button>
   <button data-view="config">Configuración</button>
 </nav>
+</div>
 <main>
   <section id="view-count"></section>
   <section id="view-sheet" hidden></section>
@@ -255,8 +262,7 @@ const DEFAULT_CFG={
     "envSize": null,
     "envUnit": "kg",
     "useTare": false,
-    "tareWeight": null,
-    "qtyPerPackageEsp": 1
+    "tareWeight": null
   },
   "tortilla-sarten": {
     "group": "contable",
@@ -815,14 +821,42 @@ function load(){
     }
   }catch(e){}
   compatCfg();
+  compatDraftCanelo();
+}
+/* Migración del borrador del canelo a la forma simple (sin especialidades):
+   las cajas y sueltas de la columna C pasan a cajas y sueltas simples; los
+   valores de otras especialidades se suman al total de sueltas (el canelo
+   es 1 por caja en todos los casos, así que el total de tortillas no cambia).
+   Los borradores viejos sin canelo no se tocan. */
+function compatDraftCanelo(){
+  if(!S.draft||!S.draft.parts) return;
+  ["1","2"].forEach(part=>{
+    const d=S.draft.parts[part]&&S.draft.parts[part]["tortilla-canelo"];
+    if(!d||!d.flavors) return;
+    const fl=d.flavors;
+    let cajas=num(fl["C"]&&fl["C"].cajas);
+    let sueltas=num(fl["C"]&&fl["C"].sueltas);
+    FLAVORS.forEach(f=>{
+      if(f.code==="C") return;
+      const x=fl[f.code]||{};
+      sueltas+=num(x.cajas)*1+num(x.sueltas); // canelo: 1 por caja siempre
+    });
+    d.cajas=cajas; d.sueltas=sueltas; delete d.flavors;
+  });
 }
 /* Normalización de la configuración: rellena campos faltantes con los
    valores por defecto. Se usa igual al cargar y al importar. */
 function compatCfg(){
   // Compatibilidad: configs guardadas en v1 no tienen qtyPerPackageEsp
+  // (el canelo no la lleva: es un postre sin especialidades, una sola
+  // cantidad por caja).
   PRODUCTS.forEach(p=>{
-    if(p.sec==="TORTILLAS"&&S.cfg[p.id]&&S.cfg[p.id].inPackage&&S.cfg[p.id].qtyPerPackageEsp==null) S.cfg[p.id].qtyPerPackageEsp=TORTILLA_PER_BOX_ESP[p.id];
+    if(p.sec==="TORTILLAS"&&p.id!=="tortilla-canelo"&&S.cfg[p.id]&&S.cfg[p.id].inPackage&&S.cfg[p.id].qtyPerPackageEsp==null) S.cfg[p.id].qtyPerPackageEsp=TORTILLA_PER_BOX_ESP[p.id];
   });
+  // El canelo es un postre sin especialidades ni queso: una sola cantidad
+  // por caja (1). Las configs guardadas viejas que aún traen la cantidad
+  // con especialidad la pierden (era 1, igual que la de sin quesear).
+  if(S.cfg["tortilla-canelo"]) delete S.cfg["tortilla-canelo"].qtyPerPackageEsp;
   // Compatibilidad: configs de v1 con un solo envase migran a un tipo de bolsa
   PRODUCTS.forEach(p=>{
     const c=S.cfg[p.id];
@@ -877,6 +911,21 @@ function flavorPartTotal(rec,pid,part,code){
   return num(fl.cajas)*tortillaPerBox(pid,code)+num(fl.sueltas);
 }
 function flavorTotal(rec,pid,code){ return flavorPartTotal(rec,pid,1,code)+flavorPartTotal(rec,pid,2,code); }
+/* Valor de una celda de especialidad en la hoja: para el canelo (postre sin
+   especialidades) el total va en la columna C, como en la hoja de la gerenta.
+   Con conteo viejo por especialidades (historial anterior) se respeta el
+   desglose guardado; y en hojas v1 sin conteo por especialidad se muestran
+   los valores manuales guardados. */
+function flavorCellValue(rec,pid,code){
+  const stored=rec.flavors&&rec.flavors[pid]?rec.flavors[pid][code]:undefined;
+  const hasFl=partHasFlavors(rec,pid,1)||partHasFlavors(rec,pid,2);
+  if(pid==="tortilla-canelo"&&!hasFl){
+    const tot=invTotal(rec,pid);
+    if(tot!==0) return code==="C"?tot:0;
+    return stored==null||stored===""?0:stored;
+  }
+  return hasFl?flavorTotal(rec,pid,code):(stored==null||stored===""?0:stored);
+}
 function boxesPartTotal(rec,pid,part){
   if(!rec) return 0;
   const d=(rec.parts[String(part)]&&rec.parts[String(part)][pid])||{};
@@ -960,6 +1009,9 @@ function partTotal(rec,pid,part){
   // los valores manuales viejos de cajas se ignoran para estos totales.
   if(pid==="caja-familiar-qp") return boxesOfTypePart(rec,"tortilla-familiar",part)+boxesOfTypePart(rec,"tortilla-sarten",part);
   if(pid==="caja-chica") return boxesOfTypePart(rec,"tortilla-chica",part)+boxesOfTypePart(rec,"tortilla-canelo",part);
+  // Tortillas: si el registro trae conteo por especialidades (historial
+  // anterior, incluido el canelo) se suman las especialidades; si no, se
+  // usa el conteo general por cajas (borradores v1 y el canelo simple).
   if(p&&p.sec==="TORTILLAS"&&cfg.group==="contable"&&cfg.inPackage){
     if(partHasFlavors(rec,pid,part)) return FLAVORS.reduce((a,f)=>a+flavorPartTotal(rec,pid,part,f.code),0);
     // Compatibilidad con borradores/historial de v1 (conteo general por cajas)
@@ -1009,7 +1061,12 @@ function countedInPart(rec,part){
 <script>
 "use strict";
 /* ============ Navegación ============ */
+/* Posición de scroll por pestaña: al salir de una pestaña se guarda dónde se
+   quedó, y al volver se restaura (no sube hasta arriba). Si una pestaña no
+   tiene posición guardada, empieza arriba como siempre. */
+const scrollPos={};
 function show(view){
+  scrollPos[ui.view]=window.scrollY;
   ui.view=view;
   document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("on",b.dataset.view===view));
   ["count","sheet","history","config"].forEach(v=>{
@@ -1019,7 +1076,7 @@ function show(view){
   if(view==="sheet") renderSheet();
   if(view==="history") renderHistory();
   if(view==="config") renderConfig();
-  window.scrollTo(0,0);
+  window.scrollTo(0,scrollPos[view]||0);
 }
 document.getElementById("nav").addEventListener("click",e=>{
   const b=e.target.closest("button[data-view]");
@@ -1037,7 +1094,10 @@ function countInputsHtml(pid,part){
     const which=pid==="caja-familiar-qp"?"Tortilla Familiar y Tortilla Sartén":"Tortilla Chica y Tortilla Canelo";
     return '<div class="hint">Se calcula sola de las tortillas ('+which+') de ambas partes. Total: <b data-cajas-tot="'+pid+'">'+fmt(invTotal(S.draft,pid))+'</b> cajas.</div>';
   }
-  if(p&&p.sec==="TORTILLAS"&&cfg.group==="contable"&&cfg.inPackage){
+  // El canelo es un postre sin especialidades ni queso: solo Cajas +
+  // Sueltas, sin tabla de especialidades (1 por caja). La Sartén sí
+  // sigue con su tabla de especialidades.
+  if(p&&p.sec==="TORTILLAS"&&cfg.group==="contable"&&cfg.inPackage&&pid!=="tortilla-canelo"){
     let h='<div class="flv-grid">';
     FLAVORS.forEach(f=>{
       const fl=(d.flavors&&d.flavors[f.code])||{};
@@ -1220,10 +1280,8 @@ function sheetTableHtml(rec,sec,readonly){
     if(sec==="TORTILLAS"){
       FLAVORS.forEach(f=>{
         // Calculadas: suma de ambas partes (cajas × por caja + sueltas por especialidad).
-        // Hojas viejas de v1 sin conteo por especialidad muestran sus valores manuales guardados.
-        const stored=rec.flavors&&rec.flavors[p.id]?rec.flavors[p.id][f.code]:undefined;
-        const val=(partHasFlavors(rec,p.id,1)||partHasFlavors(rec,p.id,2))?flavorTotal(rec,p.id,f.code):(stored==null||stored===""?0:stored);
-        h+='<td class="num">'+fmt(num(val))+'</td>';
+        // El canelo lleva su total en la columna C (ver flavorCellValue).
+        h+='<td class="num">'+fmt(num(flavorCellValue(rec,p.id,f.code)))+'</td>';
       });
       const dev=rec.dev&&rec.dev[p.id]!=null?rec.dev[p.id]:"";
       h+='<td>'+(readonly?esc(dev):'<input type="number" min="0" step="1" inputmode="numeric" data-dev="'+p.id+'" value="'+esc(dev)+'">')+'</td>';
@@ -1256,7 +1314,7 @@ function renderSheet(){
     +'<tr><td><b>FECHA:</b> '+esc(hdr.fecha||"")+'</td><td><b>HORA:</b> '+esc(hdr.hora||"")+'</td></tr></table>'
     +'<div class="muted" style="text-align:right">Actualizado Junio 2025 Op</div></div>';
   SECTIONS.forEach(sec=>{ h+=sheetTableHtml(rec,sec,readonly); });
-  h+='<p class="note">Las columnas de Tortillas son las especialidades de pizza (C = Sin quesear, Q = Queso, PP = Peperonni, H = Hawaiana, Sup = Suprema, 3C = 3 carnes, P/H = Peperonni/Hawaiana, P/S = Peperonni/Suprema, P/M = Peperonni/Mexicana, Pas = Pastor, Jam = Jamón, Mex = Mexicana, Cub = Cubana). Cada celda = cajas × tortillas por caja + sueltas, sumando cuarto frío y cocina. Por caja: Sin quesear — Familiar 3, Chica 2, Canelo 1, Sartén 1; con especialidad — Familiar 2, Chica 2, Canelo 1, Sartén 1. Cada caja es de una sola especialidad. INV de tortillas = suma de las 13 especialidades. Las cajas se calculan solas de las tortillas: Caja familiar QP = cajas de Tortilla Familiar + Tortilla Sartén; Caja Chica = cajas de Tortilla Chica + Tortilla Canelo (una caja con sueltas cuenta como caja). DEV y Dev/Mer se llenan a mano. En Ingredientes, la columna CF / COC muestra lo contado en cuarto frío y en cocina por producto. DIF = INV − KARDEX.</p>'
+  h+='<p class="note">Las columnas de Tortillas son las especialidades de pizza (C = Sin quesear, Q = Queso, PP = Peperonni, H = Hawaiana, Sup = Suprema, 3C = 3 carnes, P/H = Peperonni/Hawaiana, P/S = Peperonni/Suprema, P/M = Peperonni/Mexicana, Pas = Pastor, Jam = Jamón, Mex = Mexicana, Cub = Cubana). Cada celda = cajas × tortillas por caja + sueltas, sumando cuarto frío y cocina. Por caja: Sin quesear — Familiar 3, Chica 2, Sartén 1; con especialidad — Familiar 2, Chica 2, Sartén 1. La Tortilla Canelo es un postre sin especialidades: 1 por caja, se cuenta por cajas y sueltas y su total va en la columna C. Cada caja es de una sola especialidad. INV de tortillas = suma de las 13 especialidades. Las cajas se calculan solas de las tortillas: Caja familiar QP = cajas de Tortilla Familiar + Tortilla Sartén; Caja Chica = cajas de Tortilla Chica + Tortilla Canelo (una caja con sueltas cuenta como caja). DEV y Dev/Mer se llenan a mano. En Ingredientes, la columna CF / COC muestra lo contado en cuarto frío y en cocina por producto. DIF = INV − KARDEX.</p>'
     +'<div class="signs"><div>Firma del Gerente</div><div>Firma del Cajero</div><div>Firma del Gerente de zona / Auditor</div></div></div>';
   if(!readonly){
     h+='<button class="btn primary" id="btn-save-history">💾 Guardar en historial</button>';
@@ -1522,7 +1580,10 @@ function renderConfig(){
       } else if(group==="contable"){
         h+='<label class="check"><input type="checkbox" data-cfg-field="inPackage" data-pid="'+p.id+'" '+(c.inPackage?"checked":"")+'> Viene en paquete</label>';
         if(c.inPackage){
-          if(p.sec==="TORTILLAS"){
+          if(p.id==="tortilla-canelo"){
+            h+='<label class="f">Tortillas por caja</label><input type="number" min="1" step="1" inputmode="numeric" data-cfg-field="qtyPerPackage" data-pid="'+p.id+'" value="'+esc(c.qtyPerPackage==null?"":c.qtyPerPackage)+'">'
+              +'<p class="note">El canelo es un postre: no lleva especialidad ni queso, solo se cuenta por cajas y sueltas.</p>';
+          } else if(p.sec==="TORTILLAS"){
             h+='<div class="grid2"><div><label class="f">Por paquete · Sin quesear (C)</label><input type="number" min="1" step="1" inputmode="numeric" data-cfg-field="qtyPerPackage" data-pid="'+p.id+'" value="'+esc(c.qtyPerPackage==null?"":c.qtyPerPackage)+'"></div>'
               +'<div><label class="f">Por paquete · Con especialidad</label><input type="number" min="1" step="1" inputmode="numeric" data-cfg-field="qtyPerPackageEsp" data-pid="'+p.id+'" value="'+esc(c.qtyPerPackageEsp==null?"":c.qtyPerPackageEsp)+'"></div></div>'
               +'<p class="note">Cada caja es de una sola especialidad.</p>';
@@ -1606,7 +1667,7 @@ document.getElementById("view-config").addEventListener("input",e=>{
     if(f==="inPackage"&&inp.checked){
       if(S.cfg[pid].qtyPerPackage==null) S.cfg[pid].qtyPerPackage=1;
       const pp=PRODUCTS.find(x=>x.id===pid);
-      if(pp&&pp.sec==="TORTILLAS"&&S.cfg[pid].qtyPerPackageEsp==null) S.cfg[pid].qtyPerPackageEsp=TORTILLA_PER_BOX_ESP[pid];
+      if(pp&&pp.sec==="TORTILLAS"&&pid!=="tortilla-canelo"&&S.cfg[pid].qtyPerPackageEsp==null) S.cfg[pid].qtyPerPackageEsp=TORTILLA_PER_BOX_ESP[pid];
     }
     if(f==="inPackage"&&!inp.checked) S.cfg[pid].weighBag=false;
     if(f==="useTare"&&inp.checked&&S.cfg[pid].tareWeight==null) S.cfg[pid].tareWeight=0;
@@ -1650,11 +1711,7 @@ function printSheetHtml(rec){
   // en el papel). z() aplica esa regla a cualquier número.
   const z=(v)=>{const s=fmt(v);return s==="0"?"":s;};
   const kOf=(pid)=>z(num(rec.kardex&&rec.kardex[pid]));
-  const flVal=(pid,code)=>{
-    const stored=rec.flavors&&rec.flavors[pid]?rec.flavors[pid][code]:undefined;
-    const v=(partHasFlavors(rec,pid,1)||partHasFlavors(rec,pid,2))?flavorTotal(rec,pid,code):(stored==null||stored===""?0:stored);
-    return z(num(v));
-  };
+  const flVal=(pid,code)=>z(num(flavorCellValue(rec,pid,code)));
   /* Desglose de cajas como lo escribe la gerenta en el papel: las cajas del
      tipo principal por especialidad en su columna; el total del tipo que se
      empaca en ese tamaño va en una columna fija — la sartén en Cub (última
@@ -1739,7 +1796,7 @@ function renderPrintSheet(rec){
 /* ============ Inicio ============ */
 load();
 show("count");
-window.QH={get S(){return S;},PRODUCTS,SECTIONS,FLAVORS,partTotal,invTotal,difOf,fmt,defaultCfg,sheetText,show,renderCount,renderSheet,renderHistory,renderConfig,flavorTotal,flavorPartTotal,tortillaPerBox,boxesPartTotal,partHasFlavors,bagTypesOf,boxesFlavorPart,partialFlavorPart,partialsOfTypePart,printSheetHtml,renderPrintSheet,exportCfgText,importCfg,shareCfg,cleanCfg,b64encode,b64decode,compatCfg};
+window.QH={get S(){return S;},scrollPos,PRODUCTS,SECTIONS,FLAVORS,partTotal,invTotal,difOf,fmt,defaultCfg,sheetText,show,renderCount,renderSheet,renderHistory,renderConfig,flavorTotal,flavorPartTotal,flavorCellValue,tortillaPerBox,boxesPartTotal,partHasFlavors,bagTypesOf,boxesFlavorPart,partialFlavorPart,partialsOfTypePart,printSheetHtml,renderPrintSheet,exportCfgText,importCfg,shareCfg,cleanCfg,b64encode,b64decode,compatCfg,compatDraftCanelo};
 </script>
 </body>
 </html>
