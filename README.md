@@ -1,4 +1,4 @@
-# QuesiHelper 🍕
+# Quesi-Helper 🍕
 
 App web para digitalizar la **hojita del inventario del día** de **Fanáticos de la Pizza**, que se llena a la hora de cerrar.
 
