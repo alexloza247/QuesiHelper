@@ -978,6 +978,20 @@ function isoDate(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2
 function hhmm(d){return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");}
 function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove("show"),2600);}
+
+/* En la app (Capacitor) window.print() no hace nada: el botón de imprimir
+   usa el plugin local PrintSheet, que abre el diálogo de impresión del
+   sistema (Guardar como PDF o impresora). En el navegador sigue siendo
+   window.print() como siempre. */
+function hasCapPrintSheet(){try{var C=window.Capacitor;return !!(C&&C.Plugins&&C.Plugins.PrintSheet&&C.Plugins.PrintSheet.print)}catch(e){return false}}
+function printSheetNative(){
+  if(hasCapPrintSheet()){
+    var p=window.Capacitor.Plugins.PrintSheet.print();
+    if(p&&p.catch)p.catch(function(){toast("No se pudo abrir la impresión");});
+  } else {
+    window.print();
+  }
+}
 /* Bienvenida la primera vez: al abrir la app, si la sucursal o el turno
    todavía no se han guardado, pide los dos en un modal. Se guardan en
    S.prefs como siempre y prellenan el inventario nuevo. Con "Más tarde"
@@ -1659,7 +1673,7 @@ function renderSheet(){
   document.getElementById("btn-copy").addEventListener("click",copySheet);
   document.getElementById("btn-print").addEventListener("click",()=>{
     renderPrintSheet(currentRec());
-    window.print();
+    printSheetNative();
   });
   const bk=document.getElementById("btn-back-history");
   if(bk) bk.addEventListener("click",()=>{ui.histId=null;show("history");});
@@ -2265,7 +2279,7 @@ document.getElementById("btn-welcome-save").addEventListener("click",saveWelcome
 document.getElementById("btn-welcome-later").addEventListener("click",skipWelcome);
 document.getElementById("welcome").addEventListener("click",e=>{ if(e.target.id==="welcome") skipWelcome(); });
 maybeShowWelcome();
-window.QH={get S(){return S;},scrollPos,PRODUCTS,SECTIONS,FLAVORS,RECIPES,DEFAULT_RECIPES,EXPLOSION_PRODUCTS,partTotal,invTotal,difOf,fmt,defaultCfg,sheetText,show,renderCount,renderSheet,renderHistory,renderConfig,flavorTotal,flavorPartTotal,flavorCellValue,tortillaPerBox,boxesPartTotal,partHasFlavors,bagTypesOf,boxesFlavorPart,partialFlavorPart,partialsOfTypePart,vaciasPart,vaciasTotal,printSheetHtml,renderPrintSheet,exportCfgText,importCfg,shareCfg,cleanCfg,cleanRecipes,recipesOf,explosionTotals,explosionOf,explosionBreakdown,sectionStops,nearestStop,updateThumb,maxScroll,b64encode,b64decode,compatCfg,compatDraftCanelo,maybeShowWelcome,saveWelcome,skipWelcome,prefsMissing,normText,applyCfgSearch};
+window.QH={get S(){return S;},scrollPos,PRODUCTS,SECTIONS,FLAVORS,RECIPES,DEFAULT_RECIPES,EXPLOSION_PRODUCTS,partTotal,invTotal,difOf,fmt,defaultCfg,sheetText,show,renderCount,renderSheet,renderHistory,renderConfig,flavorTotal,flavorPartTotal,flavorCellValue,tortillaPerBox,boxesPartTotal,partHasFlavors,bagTypesOf,boxesFlavorPart,partialFlavorPart,partialsOfTypePart,vaciasPart,vaciasTotal,printSheetHtml,renderPrintSheet,exportCfgText,importCfg,shareCfg,cleanCfg,cleanRecipes,recipesOf,explosionTotals,explosionOf,explosionBreakdown,sectionStops,nearestStop,updateThumb,maxScroll,b64encode,b64decode,compatCfg,compatDraftCanelo,maybeShowWelcome,saveWelcome,skipWelcome,prefsMissing,normText,applyCfgSearch,hasCapPrintSheet,printSheetNative};
 </script>
 </body>
 </html>
