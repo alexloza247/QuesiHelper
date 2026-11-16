@@ -529,8 +529,10 @@ const DEFAULT_CFG={
   },
   "salsa-habanera-sobre": {
     "group": "contable",
-    "inPackage": false,
-    "qtyPerPackage": null,
+    "inPackage": true,
+    "qtyPerPackage": 500,
+    "weighBag": true,
+    "weightPerPiece": 0.009,
     "envSize": null,
     "envUnit": "kg",
     "useTare": false,
@@ -538,8 +540,10 @@ const DEFAULT_CFG={
   },
   "salsa-tradicional-sobre": {
     "group": "contable",
-    "inPackage": false,
-    "qtyPerPackage": null,
+    "inPackage": true,
+    "qtyPerPackage": 500,
+    "weighBag": true,
+    "weightPerPiece": 0.009,
     "envSize": null,
     "envUnit": "kg",
     "useTare": false,
@@ -831,6 +835,20 @@ function compatCfg(){
   // multiplicaba por 2). Las configs guardadas con el default viejo (3)
   // migran a 2: él nunca puso el 3 a mano a propósito.
   if(S.cfg["tortilla-chica"]&&num(S.cfg["tortilla-chica"].qtyPerPackage)===3) S.cfg["tortilla-chica"].qtyPerPackage=2;
+  // 2026-11-15: las salsas sobre llegan en caja de 500 sobres y la bolsa
+  // suelta se pesa (peso / 0.009 kg por sobre): no se cuentan pieza por
+  // pieza. Las configs guardadas donde aún están como contables migran a
+  // este método con 500 sobres por caja y 0.009 kg por sobre.
+  ["salsa-habanera-sobre","salsa-tradicional-sobre"].forEach(id=>{
+    const c=S.cfg[id];
+    if(c&&c.group==="contable"&&!c.weighBag){
+      c.inPackage=true; c.qtyPerPackage=500; c.weighBag=true; c.weightPerPiece=0.009;
+    }
+    if(c&&c.weighBag){
+      if(!c.inPackage) c.inPackage=true;
+      if(num(c.weightPerPiece)<=0) c.weightPerPiece=0.009;
+    }
+  });
 }
 function save(){ try{localStorage.setItem(LS,JSON.stringify(S));}catch(e){} }
 function num(v){const n=parseFloat(v);return isNaN(n)?0:n;}
@@ -948,6 +966,13 @@ function partTotal(rec,pid,part){
     return num(d.cajas)*num(cfg.qtyPerPackage)+num(d.sueltas);
   }
   if(cfg.group==="contable"){
+    // Pesar bolsa: cajas completas (cada caja = qtyPerPackage piezas, sin
+    // pesar) + peso de la bolsa suelta / peso por pieza, redondeado a
+    // piezas enteras. Ej. salsas sobre: caja de 500 sobres, sobre de 0.009 kg.
+    if(cfg.inPackage&&cfg.weighBag){
+      const wpp=num(cfg.weightPerPiece)>0?num(cfg.weightPerPiece):0.009;
+      return num(d.cajas)*num(cfg.qtyPerPackage)+Math.round(num(d.pesoBolsa)/wpp);
+    }
     if(cfg.inPackage) return num(d.cajas)*num(cfg.qtyPerPackage)+num(d.sueltas);
     return num(d.piezas);
   }
@@ -1025,6 +1050,17 @@ function countInputsHtml(pid,part){
     h+='</div><div class="hint"><b data-boxes-tot="'+pid+'">'+boxesPartTotal(S.draft,pid,part)+'</b> cajas en esta parte · Sin quesear ×'+fmt(tortillaPerBox(pid,"C"))+' por caja; con especialidad ×'+fmt(tortillaPerBox(pid,"Q"))+' por caja. Cada caja es de una sola especialidad.</div>';
     return h;
   }
+  // Pesar bolsa: cajas completas (sin pesar) + peso de la bolsa suelta,
+  // que se divide entre el peso por pieza y se redondea a piezas enteras.
+  if(cfg.group==="contable"&&cfg.inPackage&&cfg.weighBag){
+    const qpp=num(cfg.qtyPerPackage);
+    const wpp=num(cfg.weightPerPiece)>0?num(cfg.weightPerPiece):0.009;
+    return '<div class="fields">'
+      +'<label>Cajas (de '+fmt(qpp)+' sobres)<input type="number" min="0" step="1" inputmode="numeric" data-pid="'+pid+'" data-field="cajas" data-part="'+part+'" value="'+v("cajas")+'"></label>'
+      +'<label>Peso de la bolsa suelta (kg)<input type="number" min="0" step="0.001" inputmode="decimal" data-pid="'+pid+'" data-field="pesoBolsa" data-part="'+part+'" value="'+v("pesoBolsa")+'"></label>'
+      +'</div>'
+      +'<div class="hint">Total: <b data-weigh-tot="'+pid+'">'+fmt(partTotal(S.draft,pid,part))+'</b> sobres = cajas × '+fmt(qpp)+' + peso / '+fmt(wpp)+' kg (redondeado).</div>';
+  }
   if(cfg.group==="contable"&&cfg.inPackage){
     const noQty=num(cfg.qtyPerPackage)<=0;
     return '<div class="fields">'
@@ -1072,7 +1108,7 @@ function renderCount(){
       +'<div class="grid2"><div><label class="f">Fecha</label><input type="date" id="h-fecha" value="'+esc(isoDate(new Date()))+'"></div>'
       +'<div><label class="f">Hora</label><input type="time" id="h-hora" value="'+esc(hhmm(new Date()))+'"></div></div>'
       +'<button class="btn primary" id="btn-start">Empezar conteo → Cuarto frío</button>'
-      +'<p class="note">Antes de contar, revisa en <b>Configuración</b> que cada insumo tenga su método de conteo (paquetes, envases y recipientes).</p></div>';
+      +'<p class="note">Antes de contar, revisa en <b>Configuración</b> que cada insumo tenga su método de conteo (paquetes, pesar bolsa, envases y recipientes).</p></div>';
     document.getElementById("btn-start").addEventListener("click",()=>{
       const suc=document.getElementById("h-sucursal").value.trim();
       const tur=document.getElementById("h-turno").value.trim();
@@ -1144,6 +1180,9 @@ function updateCountProgress(){
   });
   document.querySelectorAll("[data-cajas-tot]").forEach(sp=>{
     sp.textContent=fmt(invTotal(S.draft,sp.dataset.cajasTot));
+  });
+  document.querySelectorAll("[data-weigh-tot]").forEach(sp=>{
+    sp.textContent=fmt(partTotal(S.draft,sp.dataset.weighTot,part));
   });
 }
 document.getElementById("view-count").addEventListener("input",e=>{
@@ -1395,12 +1434,13 @@ function cleanCfg(raw){
     if(c.group==="contable"||c.group==="nocontable") d.group=c.group;
     if(typeof c.inPackage==="boolean") d.inPackage=c.inPackage;
     if(typeof c.useTare==="boolean") d.useTare=c.useTare;
+    if(typeof c.weighBag==="boolean") d.weighBag=c.weighBag;
     // Campos numéricos: solo se incluyen si el texto importado los trae.
     // Si faltan, NO se ponen en null: así la importación parcial no borra
     // los valores por defecto (antes se borraban: cleanCfg ponía null y
     // Object.assign lo pisaba; con los defaults genéricos no se notaba
     // porque ya eran null, pero con la config de Alejandro sí).
-    ["qtyPerPackage","qtyPerPackageEsp","envSize","tareWeight"].forEach(f=>{
+    ["qtyPerPackage","qtyPerPackageEsp","envSize","tareWeight","weightPerPiece"].forEach(f=>{
       if(!(f in c)) return;
       if(c[f]==null) d[f]=null;
       else { const n=parseFloat(c[f]); if(isFinite(n)) d[f]=n; }
@@ -1450,7 +1490,7 @@ function importCfg(){
 
 /* ============ Vista Configuración ============ */
 function cfgGroupDefaults(group){
-  if(group==="contable") return {group:"contable",inPackage:false,qtyPerPackage:null,qtyPerPackageEsp:null,envSize:null,envUnit:"kg",useTare:false,tareWeight:null};
+  if(group==="contable") return {group:"contable",inPackage:false,qtyPerPackage:null,qtyPerPackageEsp:null,weighBag:false,weightPerPiece:null,envSize:null,envUnit:"kg",useTare:false,tareWeight:null};
   return {group:"nocontable",inPackage:false,qtyPerPackage:null,qtyPerPackageEsp:null,bagTypes:[],envSize:null,envUnit:"kg",useTare:false,tareWeight:null};
 }
 function renderConfig(){
@@ -1487,7 +1527,12 @@ function renderConfig(){
               +'<div><label class="f">Por paquete · Con especialidad</label><input type="number" min="1" step="1" inputmode="numeric" data-cfg-field="qtyPerPackageEsp" data-pid="'+p.id+'" value="'+esc(c.qtyPerPackageEsp==null?"":c.qtyPerPackageEsp)+'"></div></div>'
               +'<p class="note">Cada caja es de una sola especialidad.</p>';
           } else {
-            h+='<label class="f">Cantidad por paquete</label><input type="number" min="1" step="1" inputmode="numeric" data-cfg-field="qtyPerPackage" data-pid="'+p.id+'" value="'+esc(c.qtyPerPackage==null?"":c.qtyPerPackage)+'">';
+            h+='<label class="f">'+(c.weighBag?"Sobres por caja":"Cantidad por paquete")+'</label><input type="number" min="1" step="1" inputmode="numeric" data-cfg-field="qtyPerPackage" data-pid="'+p.id+'" value="'+esc(c.qtyPerPackage==null?"":c.qtyPerPackage)+'">';
+            h+='<label class="check"><input type="checkbox" data-cfg-field="weighBag" data-pid="'+p.id+'" '+(c.weighBag?"checked":"")+'> La bolsa suelta se pesa (no se cuenta pieza por pieza)</label>';
+            if(c.weighBag){
+              h+='<label class="f">Peso por pieza (kg)</label><input type="number" min="0" step="0.001" inputmode="decimal" data-cfg-field="weightPerPiece" data-pid="'+p.id+'" value="'+esc(c.weightPerPiece==null?"":c.weightPerPiece)+'">'
+                +'<p class="note">Total = cajas × sobres por caja + peso de la bolsa suelta / peso por pieza (redondeado a piezas enteras). Ej. un sobre pesa 0.009 kg (9 g).</p>';
+            }
           }
         }
       } else {
@@ -1556,14 +1601,16 @@ document.getElementById("view-config").addEventListener("input",e=>{
     else types[idx].size=(inp.value===""?null:inp.value);
     save(); return;
   }
-  if(f==="inPackage"||f==="useTare"){
+  if(f==="inPackage"||f==="useTare"||f==="weighBag"){
     S.cfg[pid][f]=inp.checked;
     if(f==="inPackage"&&inp.checked){
       if(S.cfg[pid].qtyPerPackage==null) S.cfg[pid].qtyPerPackage=1;
       const pp=PRODUCTS.find(x=>x.id===pid);
       if(pp&&pp.sec==="TORTILLAS"&&S.cfg[pid].qtyPerPackageEsp==null) S.cfg[pid].qtyPerPackageEsp=TORTILLA_PER_BOX_ESP[pid];
     }
+    if(f==="inPackage"&&!inp.checked) S.cfg[pid].weighBag=false;
     if(f==="useTare"&&inp.checked&&S.cfg[pid].tareWeight==null) S.cfg[pid].tareWeight=0;
+    if(f==="weighBag"&&inp.checked&&num(S.cfg[pid].weightPerPiece)<=0) S.cfg[pid].weightPerPiece=0.009;
     save(); renderConfig();
   } else if(f==="envUnit"){
     S.cfg[pid][f]=inp.value; save();
@@ -1574,8 +1621,9 @@ document.getElementById("view-config").addEventListener("input",e=>{
 document.getElementById("view-config").addEventListener("change",e=>{
   const inp=e.target.closest("[data-cfg-field]");
   if(!inp) return;
-  if(inp.dataset.cfgField==="inPackage"||inp.dataset.cfgField==="useTare"){
+  if(inp.dataset.cfgField==="inPackage"||inp.dataset.cfgField==="useTare"||inp.dataset.cfgField==="weighBag"){
     S.cfg[inp.dataset.pid][inp.dataset.cfgField]=inp.checked;
+    if(inp.dataset.cfgField==="weighBag"&&inp.checked&&num(S.cfg[inp.dataset.pid].weightPerPiece)<=0) S.cfg[inp.dataset.pid].weightPerPiece=0.009;
     save(); renderConfig();
   } else if(inp.dataset.cfgField==="envUnit"){
     S.cfg[inp.dataset.pid].envUnit=inp.value; save();
