@@ -207,6 +207,34 @@ const FLAVORS=[
 ];
 const LS="quesihelper_v1";
 
+/* ============ Explosión ============
+   La explosión calcula los insumos que se usaron para las pizzas que
+   quedaron en el inventario (las tortillas por especialidad de la hoja).
+   Solo 4 combinaciones tienen receta por el momento (queso y peperonni,
+   familiar y chica); las demás especialidades — hawaiana, suprema, 3
+   carnes, etc. — y sartén, canelo y sin quesear NO tienen receta y NO
+   aportan nada. De cada receta solo cuentan queso, pasta y pepperoni
+   (la caja, la goma, las salsas y la tortilla NO se cuentan). Las
+   cantidades son por pizza, en kg, y son editables en Configuración
+   (sub-pestaña Explosión); los valores de Alejandro son el valor por
+   defecto. */
+const RECIPES=[
+ {key:"familiar-queso",tortilla:"tortilla-familiar",code:"Q",label:"Queso Familiar",fields:["pasta","queso"]},
+ {key:"familiar-pepperoni",tortilla:"tortilla-familiar",code:"PP",label:"Peperonni Familiar",fields:["pasta","pepperoni","queso"]},
+ {key:"chica-queso",tortilla:"tortilla-chica",code:"Q",label:"Queso Chica",fields:["pasta","queso"]},
+ {key:"chica-pepperoni",tortilla:"tortilla-chica",code:"PP",label:"Peperonni Chica",fields:["pasta","pepperoni","queso"]}
+];
+const RECIPE_FIELDS={pasta:"Pasta p/ Pizza",pepperoni:"Pepperoni",queso:"Queso"};
+const DEFAULT_RECIPES={
+ "familiar-queso":{pasta:0.115,queso:0.2},
+ "familiar-pepperoni":{pasta:0.115,pepperoni:0.057,queso:0.2},
+ "chica-queso":{pasta:0.045,queso:0.07},
+ "chica-pepperoni":{pasta:0.045,pepperoni:0.0228,queso:0.07}
+};
+/* Insumo de la explosión que va en el tercer tercio de cada fila de
+   Ingredientes (solo estos tres; los demás dejan el tercer tercio vacío). */
+const EXPLOSION_PRODUCTS={queso:"queso","pasta-pizza":"pasta",pepperoni:"pepperoni"};
+
 /* ============ Configuración por defecto ============
    Los valores iniciales son la configuración real de Alejandro
    (2026-11-15, ya con todo ajustado en su inventario de prueba):
@@ -798,7 +826,11 @@ const DEFAULT_CFG={
 function defaultCfg(){
   // Copia profunda: cada llamada devuelve un objeto nuevo, para que
   // cambiar la configuración nunca corrompa los valores iniciales.
-  return JSON.parse(JSON.stringify(DEFAULT_CFG));
+  const c=JSON.parse(JSON.stringify(DEFAULT_CFG));
+  // Las recetas de la explosión van dentro de la configuración (así viajan
+  // en el texto de compartir y se importan con ella).
+  c.recipes=JSON.parse(JSON.stringify(DEFAULT_RECIPES));
+  return c;
 }
 /* ============ Estado ============ */
 /* prefs: sucursal y turno que se configuran una vez en Configuración y ya
@@ -806,7 +838,7 @@ function defaultCfg(){
    de la configuración de productos: no se comparten con el texto
    QUESIHELPER-CONFIG:. */
 let S={cfg:defaultCfg(),history:[],draft:null,prefs:{sucursal:"",turno:""}};
-let ui={view:"count",part:1,histId:null};
+let ui={view:"count",part:1,histId:null,cfgTab:"inventario"};
 function load(){
   try{
     const raw=localStorage.getItem(LS);
@@ -882,6 +914,19 @@ function compatCfg(){
       if(!c.inPackage) c.inPackage=true;
       if(num(c.weightPerPiece)<=0) c.weightPerPiece=0.009;
     }
+  });
+  // 2026-11-15: recetas de la explosión. Las configs guardadas viejas no
+  // las traen: se ponen los valores por defecto. Las que las traen
+  // incompletas o con valores inválidos se rellenan con el default.
+  if(!S.cfg.recipes||typeof S.cfg.recipes!=="object") S.cfg.recipes=JSON.parse(JSON.stringify(DEFAULT_RECIPES));
+  RECIPES.forEach(def=>{
+    const base=DEFAULT_RECIPES[def.key];
+    let q=S.cfg.recipes[def.key];
+    if(!q||typeof q!=="object") q=S.cfg.recipes[def.key]={};
+    def.fields.forEach(f=>{
+      const v=q[f];
+      q[f]=(v!=null&&v!==""&&isFinite(num(v))&&num(v)>=0)?num(v):base[f];
+    });
   });
 }
 function save(){ try{localStorage.setItem(LS,JSON.stringify(S));}catch(e){} }
@@ -1057,6 +1102,47 @@ function partTotal(rec,pid,part){
 }
 function invTotal(rec,pid){ return partTotal(rec,pid,1)+partTotal(rec,pid,2); }
 function difOf(rec,pid){ return invTotal(rec,pid)-num(rec.kardex?rec.kardex[pid]:0); }
+/* Recetas de la explosión (de Configuración; si faltan o vienen
+   incompletas, los valores por defecto). */
+function recipesOf(){
+  const r=S.cfg.recipes;
+  if(!r||typeof r!=="object") return JSON.parse(JSON.stringify(DEFAULT_RECIPES));
+  const out={};
+  RECIPES.forEach(def=>{
+    const base=DEFAULT_RECIPES[def.key];
+    const q=(r[def.key]&&typeof r[def.key]==="object")?r[def.key]:{};
+    out[def.key]={};
+    def.fields.forEach(f=>{
+      const v=q[f];
+      out[def.key][f]=(v!=null&&v!==""&&isFinite(num(v))&&num(v)>=0)?num(v):base[f];
+    });
+  });
+  return out;
+}
+/* Totales de la explosión para un inventario: por cada combinación con
+   receta, tortillas contadas (suma de las dos partes) × cantidades de la
+   receta, sumado por insumo (queso, pasta, pepperoni), redondeado a 3
+   decimales como el resto de la app. */
+function explosionTotals(rec){
+  const r=recipesOf();
+  let pasta=0,queso=0,pepperoni=0;
+  RECIPES.forEach(def=>{
+    const n=flavorTotal(rec,def.tortilla,def.code);
+    const q=r[def.key]||{};
+    pasta+=n*num(q.pasta); queso+=n*num(q.queso); pepperoni+=n*num(q.pepperoni);
+  });
+  const rd=v=>Math.round(v*1000)/1000;
+  return {pasta:rd(pasta),queso:rd(queso),pepperoni:rd(pepperoni)};
+}
+/* Explosión de un inventario: si ya se confirmó una, se muestran los
+   valores confirmados (quedan guardados con el inventario, borrador e
+   historial); si no, se calculan en vivo de las tortillas contadas. */
+function explosionOf(rec){
+  if(rec&&rec.explosion&&rec.explosion.confirmed){
+    return {pasta:num(rec.explosion.pasta),queso:num(rec.explosion.queso),pepperoni:num(rec.explosion.pepperoni)};
+  }
+  return explosionTotals(rec);
+}
 function hasData(rec,pid){
   if(invTotal(rec,pid)!==0) return true;
   if(num(rec.kardex&&rec.kardex[pid])!==0) return true;
@@ -1206,6 +1292,8 @@ function renderCount(){
     return;
   }
   const part=ui.part;
+  // Paso 3 del conteo: la Explosión, después de las dos partes.
+  if(part===3){ renderExplosion(); return; }
   const partName=part===1?"Cuarto frío":"Cocina";
   const unconfigured=PRODUCTS.filter(p=>S.cfg[p.id].group==="nocontable"&&!bagTypesOf(S.cfg[p.id]).some(t=>num(t.size)>0)).length;
   let h='<h2>Conteo · '+partName+'</h2>'
@@ -1222,15 +1310,15 @@ function renderCount(){
   });
   h+='</div>';
   if(part===1) h+='<button class="btn primary" id="btn-next-part">Siguiente → Cocina</button>';
-  else h+='<button class="btn primary" id="btn-to-sheet">Ver hoja final →</button>';
+  else h+='<button class="btn primary" id="btn-to-explosion">Ver explosión →</button>';
   h+='<button class="btn secondary" id="btn-view-sheet">Ver hoja (con lo que llevo)</button>';
   h+='<button class="btn ghost" id="btn-discard">Descartar borrador</button>';
   el.innerHTML=h;
   el.querySelectorAll(".parttabs button").forEach(b=>b.addEventListener("click",()=>{ui.part=parseInt(b.dataset.part,10);renderCount();}));
   const nb=document.getElementById("btn-next-part");
   if(nb) nb.addEventListener("click",()=>{ui.part=2;save();renderCount();window.scrollTo(0,0);});
-  const ts=document.getElementById("btn-to-sheet");
-  if(ts) ts.addEventListener("click",()=>{save();show("sheet");});
+  const te=document.getElementById("btn-to-explosion");
+  if(te) te.addEventListener("click",()=>{ui.part=3;save();renderCount();window.scrollTo(0,0);});
   document.getElementById("btn-view-sheet").addEventListener("click",()=>{save();show("sheet");});
   document.getElementById("btn-discard").addEventListener("click",()=>{
     if(confirm("¿Descartar el borrador de este conteo? Se pierde lo capturado.")){S.draft=null;save();renderCount();}
@@ -1261,6 +1349,41 @@ function updateCountProgress(){
   document.querySelectorAll("[data-weigh-tot]").forEach(sp=>{
     sp.textContent=fmt(partTotal(S.draft,sp.dataset.weighTot,part));
   });
+}
+
+/* ============ Pantalla Explosión ============
+   Paso 3 del conteo: aparece después de contar las DOS partes (cuarto
+   frío y cocina), como pantalla propia del flujo de conteo. Ya viene
+   prellenada con lo que calcula la app (los insumos de las tortillas
+   contadas), solo para que el usuario lo lea y lo confirme. Al
+   confirmar, los valores quedan guardados con el inventario (borrador
+   e historial) y se muestran en el tercer tercio de la hoja y del PDF.
+   Si se cambia el conteo (o una receta) después de confirmar, la
+   pantalla avisa y al confirmar de nuevo se actualiza. */
+function renderExplosion(){
+  const el=document.getElementById("view-count");
+  const rec=S.draft;
+  const tot=explosionTotals(rec);
+  const stored=rec.explosion&&rec.explosion.confirmed?rec.explosion:null;
+  const differs=stored&&(Math.abs(num(stored.pasta)-tot.pasta)>0.0005||Math.abs(num(stored.queso)-tot.queso)>0.0005||Math.abs(num(stored.pepperoni)-tot.pepperoni)>0.0005);
+  const qF=flavorTotal(rec,"tortilla-familiar","Q"), ppF=flavorTotal(rec,"tortilla-familiar","PP");
+  const qC=flavorTotal(rec,"tortilla-chica","Q"), ppC=flavorTotal(rec,"tortilla-chica","PP");
+  let h='<h2>Explosión</h2>'
+    +'<p class="muted">Insumos que se usaron para las pizzas que quedaron en el inventario, según las recetas. Ya viene calculado: solo léelo y confírmalo.</p>'
+    +'<div class="card"><p class="muted">Pizzas contadas — Familiar: '+fmt(qF)+' de queso · '+fmt(ppF)+' de peperonni; Chica: '+fmt(qC)+' de queso · '+fmt(ppC)+' de peperonni.</p>'
+    +'<div class="prod-head" style="margin-top:8px"><span><b>Queso</b> <span class="um">KG</span></span><span class="tot" data-expl-tot="queso">'+fmt(tot.queso)+' <small>kg</small></span></div>'
+    +'<div class="prod-head"><span><b>Pasta p/ Pizza</b> <span class="um">KG</span></span><span class="tot" data-expl-tot="pasta">'+fmt(tot.pasta)+' <small>kg</small></span></div>'
+    +'<div class="prod-head"><span><b>Pepperoni</b> <span class="um">KG</span></span><span class="tot" data-expl-tot="pepperoni">'+fmt(tot.pepperoni)+' <small>kg</small></span></div></div>'
+    +(differs?'<p class="hint">⚠️ Cambiaste el conteo (o una receta) después de confirmar: al confirmar de nuevo se actualiza con los valores de arriba.</p>':"")
+    +(stored&&!differs?'<p class="note">Ya confirmada con estos valores.</p>':"")
+    +'<button class="btn primary" id="btn-confirm-explosion">✓ Confirmar explosión</button>'
+    +'<button class="btn secondary" id="btn-back-part2">← Volver a contar (Cocina)</button>';
+  el.innerHTML=h;
+  document.getElementById("btn-confirm-explosion").addEventListener("click",()=>{
+    S.draft.explosion={pasta:tot.pasta,queso:tot.queso,pepperoni:tot.pepperoni,confirmed:true};
+    save(); toast("Explosión confirmada"); show("sheet");
+  });
+  document.getElementById("btn-back-part2").addEventListener("click",()=>{ui.part=2;renderCount();window.scrollTo(0,0);});
 }
 document.getElementById("view-count").addEventListener("input",e=>{
   const inp=e.target.closest("input[data-pid]");
@@ -1305,7 +1428,11 @@ function sheetTableHtml(rec,sec,readonly){
       h+='<td>'+(readonly?esc(dev):'<input type="number" min="0" step="1" inputmode="numeric" data-dev="'+p.id+'" value="'+esc(dev)+'">')+'</td>';
     }
     if(sec==="INGREDIENTES"){
-      h+='<td class="num parts">CF '+fmt(partTotal(rec,p.id,1))+'<br>Coc '+fmt(partTotal(rec,p.id,2))+'</td>';
+      // Tercer tercio: la explosión (solo queso, pasta y pepperoni; en
+      // blanco si el total es 0). Las demás filas dejan el tercer tercio vacío.
+      const exKey=EXPLOSION_PRODUCTS[p.id];
+      const exVal=exKey?num(explosionOf(rec)[exKey]):0;
+      h+='<td class="num parts">CF '+fmt(partTotal(rec,p.id,1))+'<br>Coc '+fmt(partTotal(rec,p.id,2))+(exVal!==0?'<br>Expl '+fmt(exVal):'')+'</td>';
       const dm=rec.devmer&&rec.devmer[p.id]!=null?rec.devmer[p.id]:"";
       h+='<td>'+(readonly?esc(dm):'<input type="number" min="0" step="0.001" inputmode="decimal" data-devmer="'+p.id+'" value="'+esc(dm)+'">')+'</td>';
     }
@@ -1337,7 +1464,7 @@ function renderSheet(){
     +'<tr><td><b>FECHA:</b> '+esc(hdr.fecha||"")+'</td><td><b>HORA:</b> '+esc(hdr.hora||"")+'</td></tr></table>'
     +'<div class="muted" style="text-align:right">Actualizado Junio 2025 Op</div></div>';
   SECTIONS.forEach(sec=>{ h+=sheetTableHtml(rec,sec,readonly); });
-  h+='<p class="note">Las columnas de Tortillas son las especialidades de pizza (C = Sin quesear, Q = Queso, PP = Peperonni, H = Hawaiana, Sup = Suprema, 3C = 3 carnes, P/H = Peperonni/Hawaiana, P/S = Peperonni/Suprema, P/M = Peperonni/Mexicana, Pas = Pastor, Jam = Jamón, Mex = Mexicana, Cub = Cubana). Cada celda = cajas × tortillas por caja + sueltas, sumando cuarto frío y cocina. Por caja: Sin quesear — Familiar 3, Chica 2, Sartén 1; con especialidad — Familiar 2, Chica 2, Sartén 1. La Tortilla Canelo es un postre sin especialidades: 1 por caja, se cuenta por cajas y sueltas y su total va en la columna C. Cada caja es de una sola especialidad. INV de tortillas = suma de las 13 especialidades. Las cajas se calculan solas de las tortillas: Caja familiar QP = cajas de Tortilla Familiar + Tortilla Sartén + cajas vacías familiares; Caja Chica = cajas de Tortilla Chica + Tortilla Canelo + cajas vacías chicas (una caja con sueltas cuenta como caja). La columna DEV de las cajas muestra las cajas vacías contadas. DEV de tortillas y Dev/Mer se llenan a mano. En Ingredientes, la columna CF / COC muestra lo contado en cuarto frío y en cocina por producto. DIF = INV − KARDEX.</p>'
+  h+='<p class="note">Las columnas de Tortillas son las especialidades de pizza (C = Sin quesear, Q = Queso, PP = Peperonni, H = Hawaiana, Sup = Suprema, 3C = 3 carnes, P/H = Peperonni/Hawaiana, P/S = Peperonni/Suprema, P/M = Peperonni/Mexicana, Pas = Pastor, Jam = Jamón, Mex = Mexicana, Cub = Cubana). Cada celda = cajas × tortillas por caja + sueltas, sumando cuarto frío y cocina. Por caja: Sin quesear — Familiar 3, Chica 2, Sartén 1; con especialidad — Familiar 2, Chica 2, Sartén 1. La Tortilla Canelo es un postre sin especialidades: 1 por caja, se cuenta por cajas y sueltas y su total va en la columna C. Cada caja es de una sola especialidad. INV de tortillas = suma de las 13 especialidades. Las cajas se calculan solas de las tortillas: Caja familiar QP = cajas de Tortilla Familiar + Tortilla Sartén + cajas vacías familiares; Caja Chica = cajas de Tortilla Chica + Tortilla Canelo + cajas vacías chicas (una caja con sueltas cuenta como caja). La columna DEV de las cajas muestra las cajas vacías contadas. DEV de tortillas y Dev/Mer se llenan a mano. En Ingredientes, la columna CF / COC muestra lo contado en cuarto frío y en cocina por producto. La explosión (Expl) muestra en Queso, Pasta p/ Pizza y Pepperoni los insumos que se usaron para las pizzas que quedaron en el inventario (tercer tercio de la casilla). DIF = INV − KARDEX.</p>'
     +'<div class="signs"><div>Firma del Gerente</div><div>Firma del Cajero</div><div>Firma del Gerente de zona / Auditor</div></div></div>';
   if(!readonly){
     h+='<button class="btn primary" id="btn-save-history">💾 Guardar en historial</button>';
@@ -1480,7 +1607,8 @@ function renderHistory(){
 /* La configuración se comparte como un texto de una sola línea (para que no
    se rompa al pasarlo por WhatsApp): prefijo reconocible + JSON compacto en
    base64. Incluye todo lo de Configuración: grupos, cantidades por paquete
-   (las dos de tortillas), tipos de bolsa, envases con su unidad y recipiente.
+   (las dos de tortillas), tipos de bolsa, envases con su unidad y recipiente,
+   y las recetas de la explosión.
    La sucursal/turno/fecha/hora NO son configuración: son del encabezado. */
 const CFG_PREFIX="QUESIHELPER-CONFIG:";
 function b64encode(str){
@@ -1540,6 +1668,30 @@ function cleanCfg(raw){
   });
   return any?out:null;
 }
+/* Limpia las recetas de una configuración importada: solo las 4 recetas
+   conocidas, solo sus campos y valores numéricos válidos (≥ 0). Lo
+   desconocido se ignora; lo que falta se rellena con el valor por defecto
+   al aplicar. Devuelve null si el texto no trae ninguna receta válida
+   (textos viejos: se usan los valores por defecto). */
+function cleanRecipes(raw){
+  if(!raw||typeof raw!=="object") return null;
+  const cfgObj=(raw.cfg&&typeof raw.cfg==="object")?raw.cfg:raw;
+  const r=cfgObj.recipes;
+  if(!r||typeof r!=="object") return null;
+  const out={};
+  let any=false;
+  RECIPES.forEach(def=>{
+    const q=r[def.key];
+    if(!q||typeof q!=="object") return;
+    const d={};
+    def.fields.forEach(f=>{
+      const v=q[f];
+      if(v!=null&&v!==""&&isFinite(num(v))&&num(v)>=0){ d[f]=num(v); any=true; }
+    });
+    if(Object.keys(d).length) out[def.key]=d;
+  });
+  return any?out:null;
+}
 function importCfg(){
   const ta=document.getElementById("cfg-import-text");
   const msg=document.getElementById("cfg-import-msg");
@@ -1558,13 +1710,21 @@ function importCfg(){
     return;
   }
   const cleaned=cleanCfg(parsed);
-  if(!cleaned){
+  const cleanedRecipes=cleanRecipes(parsed);
+  if(!cleaned&&!cleanedRecipes){
     say("La configuración no trae ningún insumo conocido. No se cambió nada.");
     return;
   }
   if(!confirm("¿Reemplazar la configuración actual con la importada? Se borra lo que tengas configurado.")) return;
   const base=defaultCfg();
-  PRODUCTS.forEach(p=>{ if(cleaned[p.id]) Object.assign(base[p.id],cleaned[p.id]); });
+  if(cleaned) PRODUCTS.forEach(p=>{ if(cleaned[p.id]) Object.assign(base[p.id],cleaned[p.id]); });
+  // Las recetas se mezclan con los valores por defecto: una receta parcial
+  // importada no borra los campos que no trae.
+  if(cleanedRecipes){
+    RECIPES.forEach(def=>{
+      if(cleanedRecipes[def.key]) Object.assign(base.recipes[def.key],cleanedRecipes[def.key]);
+    });
+  }
   S.cfg=base;
   compatCfg();
   save();
@@ -1577,12 +1737,30 @@ function cfgGroupDefaults(group){
   if(group==="contable") return {group:"contable",inPackage:false,qtyPerPackage:null,qtyPerPackageEsp:null,weighBag:false,weightPerPiece:null,envSize:null,envUnit:"kg",useTare:false,tareWeight:null};
   return {group:"nocontable",inPackage:false,qtyPerPackage:null,qtyPerPackageEsp:null,bagTypes:[],envSize:null,envUnit:"kg",useTare:false,tareWeight:null};
 }
+/* Sub-pestañas de Configuración: el bloque de compartir/importar queda
+   SIEMPRE visible arriba (no pertenece a ninguna sub-pestaña); debajo,
+   "Inventario" trae la configuración de productos, sucursal/turno y el
+   restablecer, y "Explosión" trae las recetas. */
+function recipesConfigHtml(){
+  const r=recipesOf();
+  let h='<h3 class="sec">Explosión / Recetas</h3>'
+    +'<div class="card"><p class="muted">Por cada pizza, cuántos insumos se gastan (en kg). La explosión usa estas recetas para calcular los insumos de las tortillas contadas. Solo cuentan queso, pasta y pepperoni; las demás especialidades no tienen receta por el momento.</p></div>';
+  RECIPES.forEach(def=>{
+    h+='<div class="cfg-prod"><div class="row"><span><b>'+esc(def.label)+'</b> <span class="um">por pizza</span></span></div><div class="fields">';
+    def.fields.forEach(f=>{
+      h+='<label>'+esc(RECIPE_FIELDS[f])+' (kg)<input type="number" min="0" step="0.001" inputmode="decimal" data-recipe="'+def.key+'" data-recipe-field="'+f+'" value="'+esc(r[def.key][f]==null?"":r[def.key][f])+'"></label>';
+    });
+    h+='</div></div>';
+  });
+  return h;
+}
 function renderConfig(){
   const el=document.getElementById("view-config");
-  let h="<h2>Configuración de insumos</h2>"
+  const tab=ui.cfgTab||"inventario";
+  let h="<h2>Configuración</h2>"
     +'<p class="muted">Los valores se ponen una vez y quedan guardados hasta que los cambies aquí. Mover un insumo de grupo reinicia su método de conteo.</p>'
     +'<h3 class="sec">Compartir configuración</h3>'
-    +'<div class="card"><p class="muted">Comparte tu configuración con otra persona que use la app, para que no tenga que configurarlo todo de cero: grupos contable/no contable, cantidades por paquete (las dos de tortillas), tipos de bolsa, envases con su unidad y recipientes.</p>'
+    +'<div class="card"><p class="muted">Comparte tu configuración con otra persona que use la app, para que no tenga que configurarlo todo de cero: grupos contable/no contable, cantidades por paquete (las dos de tortillas), tipos de bolsa, envases con su unidad y recipientes, y las recetas de la explosión.</p>'
     +'<button class="btn primary" id="btn-share-cfg">📤 Compartir configuración</button>'
     +'<label class="f">Texto de tu configuración (también se copia al compartir)</label>'
     +'<textarea id="cfg-export-text" readonly rows="3" style="width:100%;padding:10px 9px;font-size:13px;border:1px solid #d6d3d1;border-radius:8px;background:#fff;color:#26221f" placeholder="Toca «Compartir configuración» para generarlo"></textarea>'
@@ -1590,7 +1768,11 @@ function renderConfig(){
     +'<textarea id="cfg-import-text" rows="3" style="width:100%;padding:10px 9px;font-size:13px;border:1px solid #d6d3d1;border-radius:8px;background:#fff;color:#26221f" placeholder="QUESIHELPER-CONFIG:..."></textarea>'
     +'<p id="cfg-import-msg" class="note" style="margin:6px 0 0"></p>'
     +'<button class="btn secondary" id="btn-import-cfg">📥 Importar configuración</button></div>'
-    +'<h3 class="sec">Sucursal y turno</h3>'
+    +'<div class="parttabs"><button data-cfgtab="inventario" class="'+(tab==="inventario"?"on":"")+'">Inventario</button><button data-cfgtab="explosion" class="'+(tab==="explosion"?"on":"")+'">Explosión</button></div>';
+  if(tab==="explosion"){
+    h+=recipesConfigHtml();
+  } else {
+    h+='<h3 class="sec">Sucursal y turno</h3>'
     +'<div class="card"><p class="muted">Se configuran una vez y quedan guardados: cada inventario nuevo ya trae la sucursal y el turno llenos, solo para confirmarlos. Si un día te toca otra sucursal u otro turno, cámbialos en el encabezado de ese inventario (solo vale para ese día). La fecha y la hora se ponen solas con las de hoy.</p>'
     +'<label class="f">Sucursal</label><input type="text" id="pref-sucursal" data-pref="sucursal" placeholder="Ej. Filadelfia" value="'+esc(S.prefs.sucursal)+'">'
     +'<label class="f">Turno</label><input type="text" id="pref-turno" data-pref="turno" placeholder="Ej. Matutino" value="'+esc(S.prefs.turno)+'"></div>';
@@ -1641,8 +1823,10 @@ function renderConfig(){
       h+='</div>';
     });
   });
-  h+='<button class="btn secondary" id="btn-reset-cfg">Restablecer valores iniciales</button>';
+    h+='<button class="btn secondary" id="btn-reset-cfg">Restablecer valores iniciales</button>';
+  }
   el.innerHTML=h;
+  el.querySelectorAll("[data-cfgtab]").forEach(b=>b.addEventListener("click",()=>{ui.cfgTab=b.dataset.cfgtab;renderConfig();}));
   el.querySelectorAll("[data-move]").forEach(b=>b.addEventListener("click",()=>{
     const pid=b.dataset.move;
     const ng=S.cfg[pid].group==="contable"?"nocontable":"contable";
@@ -1664,7 +1848,8 @@ function renderConfig(){
     if(Array.isArray(S.cfg[pid].bagTypes)) S.cfg[pid].bagTypes.splice(idx,1);
     save(); renderConfig();
   }));
-  document.getElementById("btn-reset-cfg").addEventListener("click",()=>{
+  const rb=document.getElementById("btn-reset-cfg");
+  if(rb) rb.addEventListener("click",()=>{
     if(confirm("¿Restablecer todos los insumos a los valores iniciales?")){
       S.cfg=defaultCfg(); save(); renderConfig(); toast("Configuración restablecida");
     }
@@ -1677,6 +1862,18 @@ document.getElementById("view-config").addEventListener("input",e=>{
   // los inventarios nuevos (se guardan al teclear, sin re-renderizar).
   const pref=e.target.closest("[data-pref]");
   if(pref){ S.prefs[pref.dataset.pref]=pref.value; save(); return; }
+  // Recetas de la explosión (sub-pestaña Explosión): se guardan al
+  // teclear, sin re-renderizar; un campo vacío queda en null y al
+  // calcular se usa el valor por defecto de esa receta.
+  const rp=e.target.closest("[data-recipe]");
+  if(rp){
+    if(!S.cfg.recipes||typeof S.cfg.recipes!=="object") S.cfg.recipes=JSON.parse(JSON.stringify(DEFAULT_RECIPES));
+    const key=rp.dataset.recipe, f=rp.dataset.recipeField;
+    if(!S.cfg.recipes[key]||typeof S.cfg.recipes[key]!=="object") S.cfg.recipes[key]=JSON.parse(JSON.stringify(DEFAULT_RECIPES[key]));
+    const v=rp.value===""?null:parseFloat(rp.value);
+    S.cfg.recipes[key][f]=(v!=null&&isFinite(v)&&v>=0)?v:null;
+    save(); return;
+  }
   const inp=e.target.closest("[data-cfg-field]");
   if(!inp) return;
   const pid=inp.dataset.pid, f=inp.dataset.cfgField;
@@ -1726,8 +1923,10 @@ document.getElementById("view-config").addEventListener("change",e=>{
    contados en cuarto frío y en cocina, sin etiquetas, como los escribe la
    gerenta: los tercios solo guían la posición — cada valor va centrado en
    el suyo (cuarto frío en el primer tercio, cocina en el segundo y el
-   tercer tercio queda vacío por ahora) — pero la casilla se ve como una
-   sola área en blanco, sin líneas ni bordes divisorios. En CAJAS van el desglose por especialidad y el total de sartén
+   tercer tercio lleva la explosión: solo en Queso, Pasta p/ Pizza y
+   Pepperoni, en los demás renglones queda vacío) — pero la casilla se ve
+   como una sola área en blanco, sin líneas ni bordes divisorios. En CAJAS
+   van el desglose por especialidad y el total de sartén
    (en Cub) o canelo (en P/H), con la caja parcial como "8-1", y en la
    columna DEV van las cajas vacías contadas. DEV de tortillas, Dev/Mer
    y DIF/T van en blanco (se llenan a mano en el papel) y las casillas con
@@ -1795,8 +1994,13 @@ function printSheetHtml(rec){
     +'<tr class="band"><th>INGREDIENTES</th><th>UM</th><th></th><th>Dev/Mer</th><th>INV.</th><th>KARDEX</th><th>DIF/ T</th></tr>';
   PRODUCTS.filter(p=>p.sec==="INGREDIENTES").forEach(p=>{
     const inv=invTotal(rec,p.id);
+    // Tercer tercio: la explosión (solo Queso, Pasta p/ Pizza y
+    // Pepperoni; en los demás renglones queda vacío, y si el total es 0
+    // también va en blanco por la regla de ceros vacíos).
+    const exKey=EXPLOSION_PRODUCTS[p.id];
+    const exVal=exKey?num(explosionOf(rec)[exKey]):0;
     h+='<tr><td class="pn">'+esc(p.name)+'</td><td class="um">'+esc(p.um)+'</td>'
-      +'<td><span style="display:inline-block;width:33%;text-align:center">'+z(partTotal(rec,p.id,1))+'</span><span style="display:inline-block;width:33%;text-align:center">'+z(partTotal(rec,p.id,2))+'</span><span style="display:inline-block;width:33%"></span></td>'
+      +'<td><span style="display:inline-block;width:33%;text-align:center">'+z(partTotal(rec,p.id,1))+'</span><span style="display:inline-block;width:33%;text-align:center">'+z(partTotal(rec,p.id,2))+'</span><span style="display:inline-block;width:33%;text-align:center">'+z(exVal)+'</span></td>'
       +'<td></td><td class="num"><b>'+z(inv)+'</b></td><td class="num">'+kOf(p.id)+'</td><td></td></tr>';
   });
   h+='</table>';
@@ -1827,7 +2031,7 @@ function renderPrintSheet(rec){
 /* ============ Inicio ============ */
 load();
 show("count");
-window.QH={get S(){return S;},scrollPos,PRODUCTS,SECTIONS,FLAVORS,partTotal,invTotal,difOf,fmt,defaultCfg,sheetText,show,renderCount,renderSheet,renderHistory,renderConfig,flavorTotal,flavorPartTotal,flavorCellValue,tortillaPerBox,boxesPartTotal,partHasFlavors,bagTypesOf,boxesFlavorPart,partialFlavorPart,partialsOfTypePart,vaciasPart,vaciasTotal,printSheetHtml,renderPrintSheet,exportCfgText,importCfg,shareCfg,cleanCfg,b64encode,b64decode,compatCfg,compatDraftCanelo};
+window.QH={get S(){return S;},scrollPos,PRODUCTS,SECTIONS,FLAVORS,RECIPES,DEFAULT_RECIPES,EXPLOSION_PRODUCTS,partTotal,invTotal,difOf,fmt,defaultCfg,sheetText,show,renderCount,renderSheet,renderHistory,renderConfig,flavorTotal,flavorPartTotal,flavorCellValue,tortillaPerBox,boxesPartTotal,partHasFlavors,bagTypesOf,boxesFlavorPart,partialFlavorPart,partialsOfTypePart,vaciasPart,vaciasTotal,printSheetHtml,renderPrintSheet,exportCfgText,importCfg,shareCfg,cleanCfg,cleanRecipes,recipesOf,explosionTotals,explosionOf,b64encode,b64decode,compatCfg,compatDraftCanelo};
 </script>
 </body>
 </html>
