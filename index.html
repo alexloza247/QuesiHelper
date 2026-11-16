@@ -2070,10 +2070,11 @@ function cfgGroupDefaults(group){
   if(group==="contable") return {group:"contable",inPackage:false,qtyPerPackage:null,qtyPerPackageEsp:null,weighBag:false,weightPerPiece:null,envSize:null,envUnit:"kg",useTare:false,tareWeight:null};
   return {group:"nocontable",inPackage:false,qtyPerPackage:null,qtyPerPackageEsp:null,bagTypes:[],envSize:null,envUnit:"kg",useTare:false,tareWeight:null};
 }
-/* Sub-pestañas de Configuración: el bloque de compartir/importar queda
-   SIEMPRE visible arriba (no pertenece a ninguna sub-pestaña); debajo,
-   "Inventario" trae la configuración de productos, sucursal/turno y el
-   restablecer, y "Explosión" trae las recetas. */
+/* Sub-pestañas de Configuración: el bloque de compartir/importar, la
+   sucursal y el turno, y el tamaño de letra quedan SIEMPRE visibles
+   arriba (no pertenecen a ninguna sub-pestaña); debajo, "Inventario"
+   trae la configuración de productos y el restablecer, y "Explosión"
+   trae las recetas. */
 function recipesConfigHtml(){
   const r=recipesOf();
   let h='<h3 class="sec">Explosión / Recetas</h3>'
@@ -2097,8 +2098,9 @@ function normText(s){
 /* Filtra la lista de productos de Configuración / Inventario según
    ui.cfgSearch, sin re-renderizar (el foco del buscador no se pierde):
    muestra solo los insumos cuyo nombre coincida, oculta las secciones
-   (Contables / No contables) y la tarjeta de Sucursal y turno cuando no
-   tienen coincidencias, y muestra "Sin resultados" si nada coincide. */
+   (Contables / No contables) y las secciones generales de arriba
+   (Sucursal y turno, Tamaño de letra) cuando no tienen coincidencias,
+   y muestra "Sin resultados" si nada coincide. */
 function applyCfgSearch(){
   const el=document.getElementById("view-config");
   if(!el) return;
@@ -2106,7 +2108,10 @@ function applyCfgSearch(){
   const si=document.getElementById("cfg-search");
   if(si&&si.value!==(ui.cfgSearch||"")) si.value=ui.cfgSearch||"";
   const prefs=document.getElementById("cfg-prefs-wrap");
-  if(prefs) prefs.hidden=q!=="";
+  // Las secciones generales (Sucursal y turno, Tamaño de letra) solo se
+  // ocultan al buscar dentro de la sub-pestaña Inventario; en Explosión
+  // siempre se ven, aunque haya una búsqueda guardada.
+  if(prefs) prefs.hidden=q!==""&&(ui.cfgTab||"inventario")==="inventario";
   let visible=0;
   el.querySelectorAll(".cfg-prod[data-cfg]").forEach(div=>{
     const p=PRODUCTS.find(x=>x.id===div.dataset.cfg);
@@ -2138,19 +2143,19 @@ function renderConfig(){
     +'<textarea id="cfg-import-text" rows="3" style="width:100%;padding:10px 9px;font-size:calc(13px * var(--fs));border:1px solid #d6d3d1;border-radius:8px;background:#fff;color:#26221f" placeholder="QUESIHELPER-CONFIG:..."></textarea>'
     +'<p id="cfg-import-msg" class="note" style="margin:6px 0 0"></p>'
     +'<button class="btn secondary" id="btn-import-cfg">📥 Importar configuración</button></div>'
-    +'<div class="parttabs"><button data-cfgtab="inventario" class="'+(tab==="inventario"?"on":"")+'">Inventario</button><button data-cfgtab="explosion" class="'+(tab==="explosion"?"on":"")+'">Explosión</button></div>';
-  if(tab==="explosion"){
-    h+=recipesConfigHtml();
-  } else {
-    h+='<div style="margin:10px 0 4px"><input type="search" id="cfg-search" placeholder="🔍 Buscar insumo..." value="'+esc(ui.cfgSearch||"")+'" autocomplete="off" style="width:100%;padding:10px 12px;font-size:calc(15px * var(--fs));border:1px solid #d6d3d1;border-radius:10px;background:#fff;color:#26221f"></div>'
-    +'<p id="cfg-no-results" class="note" hidden>Sin resultados</p>'
     +'<div id="cfg-prefs-wrap"><h3 class="sec">Sucursal y turno</h3>'
     +'<div class="card"><p class="muted">Se configuran una vez y quedan guardados: cada inventario nuevo ya trae la sucursal y el turno llenos, solo para confirmarlos. Si un día te toca otra sucursal u otro turno, cámbialos en el encabezado de ese inventario (solo vale para ese día). La fecha y la hora se ponen solas con las de hoy.</p>'
     +'<label class="f">Sucursal</label><input type="text" id="pref-sucursal" data-pref="sucursal" placeholder="Ej. Filadelfia" value="'+esc(S.prefs.sucursal)+'">'
     +'<label class="f">Turno</label><input type="text" id="pref-turno" data-pref="turno" placeholder="Ej. Matutino" value="'+esc(S.prefs.turno)+'"></div>'
     +'<h3 class="sec">Tamaño de letra</h3>'
     +'<div class="card"><p class="muted">Agranda (o achica) las letras de toda la app en este teléfono. Solo vale para este dispositivo: si otra persona usa la app en su teléfono, pone el tamaño que le convenga ahí. El PDF no cambia.</p>'
-    +'<div class="parttabs">'+["chico","normal","grande","muygrande"].map(k=>'<button data-fontsize="'+k+'" class="'+(fsCur===k?"on":"")+'">'+FONT_SIZES[k]+'</button>').join("")+'</div></div></div>';
+    +'<div class="parttabs">'+["chico","normal","grande","muygrande"].map(k=>'<button data-fontsize="'+k+'" class="'+(fsCur===k?"on":"")+'">'+FONT_SIZES[k]+'</button>').join("")+'</div></div></div>'
+    +'<div class="parttabs"><button data-cfgtab="inventario" class="'+(tab==="inventario"?"on":"")+'">Inventario</button><button data-cfgtab="explosion" class="'+(tab==="explosion"?"on":"")+'">Explosión</button></div>';
+  if(tab==="explosion"){
+    h+=recipesConfigHtml();
+  } else {
+    h+='<div style="margin:10px 0 4px"><input type="search" id="cfg-search" placeholder="🔍 Buscar insumo..." value="'+esc(ui.cfgSearch||"")+'" autocomplete="off" style="width:100%;padding:10px 12px;font-size:calc(15px * var(--fs));border:1px solid #d6d3d1;border-radius:10px;background:#fff;color:#26221f"></div>'
+    +'<p id="cfg-no-results" class="note" hidden>Sin resultados</p>';
   ["contable","nocontable"].forEach(group=>{
     const list=PRODUCTS.filter(p=>S.cfg[p.id].group===group);
     h+='<h3 class="sec" data-cfg-group="'+group+'">'+(group==="contable"?"Contables":"No contables")+' ('+list.length+')</h3>';
