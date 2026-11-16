@@ -17,7 +17,7 @@
   nav{display:flex;gap:6px;padding:8px 10px;background:#7f1d1d}
   nav button{flex:1;border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;border-radius:8px;padding:9px 4px;font-size:13.5px;cursor:pointer}
   nav button.on{background:#fff;color:#7f1d1d;font-weight:700}
-  main{max-width:860px;margin:0 auto;padding:14px 12px 90px}
+  main{max-width:860px;margin:0 auto;padding:14px 12px 120px}
   h2{font-size:17px;margin:6px 0 10px}
   h3.sec{background:#e7e5e4;border:1px solid #d6d3d1;padding:6px 10px;margin:18px 0 0;font-size:14px;letter-spacing:.4px;text-transform:uppercase}
   .card{background:#fff;border:1px solid #e7d9c8;border-radius:10px;padding:12px;margin:10px 0}
@@ -56,6 +56,20 @@
      puede pasar a dos líneas y los botones quedan de la misma altura. */
   .parttabs button{flex:1;min-width:0;border:1px solid #b91c1c;background:#fff;color:#b91c1c;border-radius:10px;padding:10px 6px;font-size:14px;line-height:1.2;font-weight:700;cursor:pointer}
   .parttabs button.on{background:#b91c1c;color:#fff}
+  /* Desglose de la explosión por pizza: cada bloque lleva el tipo, la
+     cantidad de pizzas y sus insumos; el total va aparte. */
+  .expl-brk{border-top:1px solid #e7d9c8;margin-top:8px;padding-top:8px}
+  .expl-brk:first-child{border-top:0;margin-top:0;padding-top:0}
+  /* Navegación rápida, solo en Contar: slider lateral con paradas por
+     sección + dos botones flotantes (arriba/abajo) en la esquina
+     inferior derecha. El slider va centrado en el borde derecho y los
+     botones abajo a la derecha, para que no se solapen al tocarlos. */
+  #quicknav{position:fixed;inset:0;z-index:30;pointer-events:none}
+  #quicknav[hidden]{display:none}
+  #scrollslider{position:absolute;right:2px;top:50%;transform:translateY(-50%);width:14px;height:36vh;background:rgba(38,34,31,.10);border-radius:7px;pointer-events:auto;touch-action:none}
+  #scrollslider .thumb{position:absolute;left:1px;right:1px;top:0;height:48px;background:#b91c1c;border-radius:6px;cursor:grab;touch-action:none}
+  #scrollbtns{position:absolute;right:12px;bottom:12px;display:flex;flex-direction:column;gap:8px;pointer-events:auto}
+  #scrollbtns button{width:44px;height:44px;border-radius:50%;border:1px solid #d6d3d1;background:#fff;color:#b91c1c;font-size:20px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.18);cursor:pointer}
   .sheet{background:#fff;border:1px solid #d6d3d1;padding:12px 10px}
   .sheet-head{border:2px solid #44403c;padding:8px 10px;margin-bottom:10px}
   .sheet-head .logo{text-align:right;font-weight:800;font-size:13px;line-height:1.1}
@@ -89,7 +103,7 @@
     @page{size:letter portrait;margin:5mm}
     body{background:#fff;color:#000}
     header,nav,main,#toast{display:none!important}
-    #topbar{display:none!important}
+    #topbar,#quicknav{display:none!important}
     #printSheet{display:block!important;font-family:Arial,Helvetica,sans-serif;color:#000}
     #printSheet .psheet{border:2px solid #000;padding:4px 6px}
     #printSheet table.phead{width:100%;border-collapse:collapse;margin-bottom:2px}
@@ -134,6 +148,13 @@
   <section id="view-history" hidden></section>
   <section id="view-config" hidden></section>
 </main>
+<div id="quicknav">
+  <div id="scrollslider" title="Desliza para moverte por las secciones"><div class="thumb" id="scroll-thumb"></div></div>
+  <div id="scrollbtns">
+    <button id="btn-scroll-top" title="Ir arriba" aria-label="Ir arriba">↑</button>
+    <button id="btn-scroll-bottom" title="Ir abajo" aria-label="Ir abajo">↓</button>
+  </div>
+</div>
 <div id="printSheet"></div>
 <div id="toast"></div>
 <script>
@@ -1156,6 +1177,24 @@ function explosionOf(rec){
   }
   return explosionTotals(rec);
 }
+/* Desglose de la explosión por pizza: un bloque por cada combinación
+   con receta que tenga al menos 1 pizza contada, con sus insumos según
+   la receta (solo los que le corresponden a esa pizza). Los tipos con
+   0 pizzas no salen. Usa los mismos valores que el total (en vivo). */
+function explosionBreakdown(rec){
+  const r=recipesOf();
+  const rd=v=>Math.round(v*1000)/1000;
+  const out=[];
+  RECIPES.forEach(def=>{
+    const n=flavorTotal(rec,def.tortilla,def.code);
+    if(n<=0) return;
+    const q=r[def.key]||{};
+    const vals={};
+    def.fields.forEach(f=>{ vals[f]=rd(n*num(q[f])); });
+    out.push({key:def.key,label:def.label,n:n,fields:def.fields.slice(),vals:vals});
+  });
+  return out;
+}
 function hasData(rec,pid){
   if(invTotal(rec,pid)!==0) return true;
   if(num(rec.kardex&&rec.kardex[pid])!==0) return true;
@@ -1188,12 +1227,81 @@ function show(view){
   if(view==="sheet") renderSheet();
   if(view==="history") renderHistory();
   if(view==="config") renderConfig();
+  /* La navegación rápida (slider + botones flotantes) solo se ve en
+     Contar, en sus tres vistas; en Hoja, Historial y Configuración
+     se esconde. */
+  document.getElementById("quicknav").hidden=(view!=="count");
   window.scrollTo(0,scrollPos[view]||0);
+  updateThumb();
 }
 document.getElementById("nav").addEventListener("click",e=>{
   const b=e.target.closest("button[data-view]");
   if(b) show(b.dataset.view);
 });
+
+/* ============ Navegación rápida en Contar ============
+   Dos botones flotantes en la esquina inferior derecha (↑ arriba,
+   ↓ abajo, con desplazamiento suave) y un slider vertical en el
+   borde derecho con un pulgar arrastrable. El pulgar refleja la
+   posición actual del scroll; al arrastrarlo la página se desplaza
+   en proporción. En las partes 1 y 2 el desplazamiento se detiene
+   (snap) en cada sección de productos (Cajas, Tortillas,
+   Ingredientes, Salsas, Aderezos, Refrescos, Desechables) y la
+   página salta a su encabezado; en la Explosión (parte 3) no hay
+   secciones y el desplazamiento es continuo. Funciona con el dedo
+   (eventos Pointer, con touch-action:none para que el navegador no
+   se quede con el gesto). El slider va centrado en el borde derecho
+   y los botones abajo a la derecha, para que no se solapen. */
+const quicknavEl=document.getElementById("quicknav");
+const sliderEl=document.getElementById("scrollslider");
+const thumbEl=document.getElementById("scroll-thumb");
+function maxScroll(){ return Math.max(0,document.documentElement.scrollHeight-window.innerHeight); }
+function updateThumb(){
+  const ms=maxScroll();
+  const range=Math.max(0,sliderEl.clientHeight-thumbEl.offsetHeight);
+  const ratio=ms>0?window.scrollY/ms:0;
+  thumbEl.style.top=Math.round(ratio*range)+"px";
+}
+/* Paradas del slider: el encabezado de cada sección del conteo, con
+   su posición de scroll (descontando el encabezado fijo para que el
+   título de la sección no quede tapado). */
+function sectionStops(){
+  const top=document.getElementById("topbar");
+  const off=top?top.offsetHeight:0;
+  const ms=maxScroll();
+  return Array.from(document.querySelectorAll("#view-count h3.sec")).map(h=>({
+    name:h.textContent.trim(),
+    y:Math.max(0,Math.min(ms,h.offsetTop-off))
+  }));
+}
+function nearestStop(y){
+  const stops=sectionStops();
+  if(!stops.length) return y;
+  let best=stops[0],bd=Math.abs(y-stops[0].y);
+  stops.forEach(s=>{ const d=Math.abs(y-s.y); if(d<bd){bd=d;best=s;} });
+  return best.y;
+}
+window.addEventListener("scroll",updateThumb,{passive:true});
+window.addEventListener("resize",updateThumb);
+document.getElementById("btn-scroll-top").addEventListener("click",()=>window.scrollTo({top:0,behavior:"smooth"}));
+document.getElementById("btn-scroll-bottom").addEventListener("click",()=>window.scrollTo({top:maxScroll(),behavior:"smooth"}));
+let dragStartY=0,dragStartScroll=0,dragging=false;
+thumbEl.addEventListener("pointerdown",e=>{
+  dragging=true; dragStartY=e.clientY; dragStartScroll=window.scrollY;
+  if(e.pointerId!=null&&thumbEl.setPointerCapture){ try{thumbEl.setPointerCapture(e.pointerId);}catch(_){} }
+  e.preventDefault();
+});
+thumbEl.addEventListener("pointermove",e=>{
+  if(!dragging) return;
+  const ms=maxScroll();
+  const range=Math.max(1,sliderEl.clientHeight-thumbEl.offsetHeight);
+  let y=dragStartScroll+(e.clientY-dragStartY)*(ms/range);
+  y=Math.max(0,Math.min(ms,y));
+  if(ui.part!==3) y=nearestStop(y);
+  window.scrollTo(0,y);
+});
+thumbEl.addEventListener("pointerup",()=>{dragging=false;});
+thumbEl.addEventListener("pointercancel",()=>{dragging=false;});
 
 /* ============ Vista Contar ============ */
 function countInputsHtml(pid,part){
@@ -1302,6 +1410,7 @@ function renderCount(){
       ui.part=1; save(); renderCount();
       toast("Conteo iniciado · Cuarto frío");
     });
+    updateThumb();
     return;
   }
   const part=ui.part;
@@ -1337,6 +1446,7 @@ function renderCount(){
     if(confirm("¿Descartar el borrador de este conteo? Se pierde lo capturado.")){S.draft=null;save();renderCount();}
   });
   updateCountProgress();
+  updateThumb();
 }
 function updateCountProgress(){
   const el=document.getElementById("count-progress");
@@ -1377,14 +1487,21 @@ function renderExplosion(){
   const el=document.getElementById("view-count");
   const rec=S.draft;
   const tot=explosionTotals(rec);
+  const brk=explosionBreakdown(rec);
   const stored=rec.explosion&&rec.explosion.confirmed?rec.explosion:null;
   const differs=stored&&(Math.abs(num(stored.pasta)-tot.pasta)>0.0005||Math.abs(num(stored.queso)-tot.queso)>0.0005||Math.abs(num(stored.pepperoni)-tot.pepperoni)>0.0005);
   const qF=flavorTotal(rec,"tortilla-familiar","Q"), ppF=flavorTotal(rec,"tortilla-familiar","PP");
   const qC=flavorTotal(rec,"tortilla-chica","Q"), ppC=flavorTotal(rec,"tortilla-chica","PP");
+  const brkHtml=brk.length?'<div class="card"><p class="muted"><b>Por pizza</b></p>'+brk.map(b=>{
+    return '<div class="expl-brk" data-expl-brk="'+b.key+'"><div class="prod-head"><span><b>'+esc(b.label)+'</b> <span class="um">'+fmt(b.n)+' pizza'+(b.n===1?"":"s")+'</span></span></div>'
+      +b.fields.map(f=>'<div class="prod-head"><span>'+RECIPE_FIELDS[f]+' <span class="um">KG</span></span><span class="tot">'+fmt(b.vals[f])+' <small>kg</small></span></div>').join("")+'</div>';
+  }).join("")+'</div>':"";
   let h='<h2>Explosión</h2>'
     +'<div class="parttabs"><button data-part="1">1 · Cuarto frío</button><button data-part="2">2 · Cocina</button><button data-part="3" class="on">3 · Explosión</button></div>'
     +'<p class="muted">Insumos que se usaron para las pizzas que quedaron en el inventario, según las recetas. Ya viene calculado: solo léelo y confírmalo.</p>'
-    +'<div class="card"><p class="muted">Pizzas contadas — Familiar: '+fmt(qF)+' de queso · '+fmt(ppF)+' de peperonni; Chica: '+fmt(qC)+' de queso · '+fmt(ppC)+' de peperonni.</p>'
+    +'<p class="muted">Pizzas contadas — Familiar: '+fmt(qF)+' de queso · '+fmt(ppF)+' de peperonni; Chica: '+fmt(qC)+' de queso · '+fmt(ppC)+' de peperonni.</p>'
+    +brkHtml
+    +'<div class="card"><p class="muted"><b>Total</b></p>'
     +'<div class="prod-head" style="margin-top:8px"><span><b>Queso</b> <span class="um">KG</span></span><span class="tot" data-expl-tot="queso">'+fmt(tot.queso)+' <small>kg</small></span></div>'
     +'<div class="prod-head"><span><b>Pasta p/ Pizza</b> <span class="um">KG</span></span><span class="tot" data-expl-tot="pasta">'+fmt(tot.pasta)+' <small>kg</small></span></div>'
     +'<div class="prod-head"><span><b>Pepperoni</b> <span class="um">KG</span></span><span class="tot" data-expl-tot="pepperoni">'+fmt(tot.pepperoni)+' <small>kg</small></span></div></div>'
@@ -1399,6 +1516,7 @@ function renderExplosion(){
     save(); toast("Explosión confirmada"); show("sheet");
   });
   document.getElementById("btn-back-part2").addEventListener("click",()=>{ui.part=2;renderCount();window.scrollTo(0,0);});
+  updateThumb();
 }
 document.getElementById("view-count").addEventListener("input",e=>{
   const inp=e.target.closest("input[data-pid]");
@@ -2057,7 +2175,7 @@ function renderPrintSheet(rec){
 /* ============ Inicio ============ */
 load();
 show("count");
-window.QH={get S(){return S;},scrollPos,PRODUCTS,SECTIONS,FLAVORS,RECIPES,DEFAULT_RECIPES,EXPLOSION_PRODUCTS,partTotal,invTotal,difOf,fmt,defaultCfg,sheetText,show,renderCount,renderSheet,renderHistory,renderConfig,flavorTotal,flavorPartTotal,flavorCellValue,tortillaPerBox,boxesPartTotal,partHasFlavors,bagTypesOf,boxesFlavorPart,partialFlavorPart,partialsOfTypePart,vaciasPart,vaciasTotal,printSheetHtml,renderPrintSheet,exportCfgText,importCfg,shareCfg,cleanCfg,cleanRecipes,recipesOf,explosionTotals,explosionOf,b64encode,b64decode,compatCfg,compatDraftCanelo};
+window.QH={get S(){return S;},scrollPos,PRODUCTS,SECTIONS,FLAVORS,RECIPES,DEFAULT_RECIPES,EXPLOSION_PRODUCTS,partTotal,invTotal,difOf,fmt,defaultCfg,sheetText,show,renderCount,renderSheet,renderHistory,renderConfig,flavorTotal,flavorPartTotal,flavorCellValue,tortillaPerBox,boxesPartTotal,partHasFlavors,bagTypesOf,boxesFlavorPart,partialFlavorPart,partialsOfTypePart,vaciasPart,vaciasTotal,printSheetHtml,renderPrintSheet,exportCfgText,importCfg,shareCfg,cleanCfg,cleanRecipes,recipesOf,explosionTotals,explosionOf,explosionBreakdown,sectionStops,nearestStop,updateThumb,maxScroll,b64encode,b64decode,compatCfg,compatDraftCanelo};
 </script>
 </body>
 </html>
