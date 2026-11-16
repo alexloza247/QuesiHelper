@@ -880,7 +880,7 @@ function defaultCfg(){
    de la configuración de productos: no se comparten con el texto
    QUESIHELPER-CONFIG:. */
 let S={cfg:defaultCfg(),history:[],draft:null,prefs:{sucursal:"",turno:"",welcomeAsked:false}};
-let ui={view:"count",part:1,histId:null,cfgTab:"inventario"};
+let ui={view:"count",part:1,histId:null,cfgTab:"inventario",cfgSearch:""};
 function load(){
   try{
     const raw=localStorage.getItem(LS);
@@ -1939,6 +1939,42 @@ function recipesConfigHtml(){
   });
   return h;
 }
+/* Buscador de Configuración / Inventario: normaliza el texto para que la
+   búsqueda no distinga mayúsculas ni acentos ("QUESO" y "jalapeño" valen
+   igual), ignore espacios y signos, y colapse letras repetidas seguidas
+   ("peperonni" encuentra a Pepperoni, "mantequilla" a Mantequilla). */
+function normText(s){
+  return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"").replace(/(.)\1+/g,"$1");
+}
+/* Filtra la lista de productos de Configuración / Inventario según
+   ui.cfgSearch, sin re-renderizar (el foco del buscador no se pierde):
+   muestra solo los insumos cuyo nombre coincida, oculta las secciones
+   (Contables / No contables) y la tarjeta de Sucursal y turno cuando no
+   tienen coincidencias, y muestra "Sin resultados" si nada coincide. */
+function applyCfgSearch(){
+  const el=document.getElementById("view-config");
+  if(!el) return;
+  const q=normText(ui.cfgSearch||"");
+  const si=document.getElementById("cfg-search");
+  if(si&&si.value!==(ui.cfgSearch||"")) si.value=ui.cfgSearch||"";
+  const prefs=document.getElementById("cfg-prefs-wrap");
+  if(prefs) prefs.hidden=q!=="";
+  let visible=0;
+  el.querySelectorAll(".cfg-prod[data-cfg]").forEach(div=>{
+    const p=PRODUCTS.find(x=>x.id===div.dataset.cfg);
+    const match=q===""||(p&&normText(p.name).includes(q));
+    div.hidden=!match;
+    if(match) visible++;
+  });
+  ["contable","nocontable"].forEach(g=>{
+    const head=el.querySelector('h3.sec[data-cfg-group="'+g+'"]');
+    if(!head) return;
+    const any=[...el.querySelectorAll(".cfg-prod[data-cfg]")].some(d=>!d.hidden&&S.cfg[d.dataset.cfg]&&S.cfg[d.dataset.cfg].group===g);
+    head.hidden=q!==""&&!any;
+  });
+  const nr=document.getElementById("cfg-no-results");
+  if(nr) nr.hidden=!(q!==""&&visible===0);
+}
 function renderConfig(){
   const el=document.getElementById("view-config");
   const tab=ui.cfgTab||"inventario";
@@ -1957,13 +1993,15 @@ function renderConfig(){
   if(tab==="explosion"){
     h+=recipesConfigHtml();
   } else {
-    h+='<h3 class="sec">Sucursal y turno</h3>'
+    h+='<div style="margin:10px 0 4px"><input type="search" id="cfg-search" placeholder="🔍 Buscar insumo..." value="'+esc(ui.cfgSearch||"")+'" autocomplete="off" style="width:100%;padding:10px 12px;font-size:15px;border:1px solid #d6d3d1;border-radius:10px;background:#fff;color:#26221f"></div>'
+    +'<p id="cfg-no-results" class="note" hidden>Sin resultados</p>'
+    +'<div id="cfg-prefs-wrap"><h3 class="sec">Sucursal y turno</h3>'
     +'<div class="card"><p class="muted">Se configuran una vez y quedan guardados: cada inventario nuevo ya trae la sucursal y el turno llenos, solo para confirmarlos. Si un día te toca otra sucursal u otro turno, cámbialos en el encabezado de ese inventario (solo vale para ese día). La fecha y la hora se ponen solas con las de hoy.</p>'
     +'<label class="f">Sucursal</label><input type="text" id="pref-sucursal" data-pref="sucursal" placeholder="Ej. Filadelfia" value="'+esc(S.prefs.sucursal)+'">'
-    +'<label class="f">Turno</label><input type="text" id="pref-turno" data-pref="turno" placeholder="Ej. Matutino" value="'+esc(S.prefs.turno)+'"></div>';
+    +'<label class="f">Turno</label><input type="text" id="pref-turno" data-pref="turno" placeholder="Ej. Matutino" value="'+esc(S.prefs.turno)+'"></div></div>';
   ["contable","nocontable"].forEach(group=>{
     const list=PRODUCTS.filter(p=>S.cfg[p.id].group===group);
-    h+='<h3 class="sec">'+(group==="contable"?"Contables":"No contables")+' ('+list.length+')</h3>';
+    h+='<h3 class="sec" data-cfg-group="'+group+'">'+(group==="contable"?"Contables":"No contables")+' ('+list.length+')</h3>';
     list.forEach(p=>{
       const c=S.cfg[p.id];
       h+='<div class="cfg-prod" data-cfg="'+p.id+'"><div class="row"><span><b>'+esc(p.name)+'</b> <span class="um">'+esc(p.um)+'</span></span>'
@@ -2041,6 +2079,12 @@ function renderConfig(){
   });
   document.getElementById("btn-share-cfg").addEventListener("click",shareCfg);
   document.getElementById("btn-import-cfg").addEventListener("click",importCfg);
+  // Buscador de insumos: filtra al teclear sin re-renderizar (no se pierde
+  // el foco ni lo escrito); al re-renderizar por otro cambio, el filtro se
+  // vuelve a aplicar con el texto guardado en ui.cfgSearch.
+  const si=document.getElementById("cfg-search");
+  if(si) si.addEventListener("input",()=>{ ui.cfgSearch=si.value; applyCfgSearch(); });
+  applyCfgSearch();
 }
 document.getElementById("view-config").addEventListener("input",e=>{
   // Sucursal y turno guardados: se escriben una vez y quedan para todos
@@ -2221,7 +2265,7 @@ document.getElementById("btn-welcome-save").addEventListener("click",saveWelcome
 document.getElementById("btn-welcome-later").addEventListener("click",skipWelcome);
 document.getElementById("welcome").addEventListener("click",e=>{ if(e.target.id==="welcome") skipWelcome(); });
 maybeShowWelcome();
-window.QH={get S(){return S;},scrollPos,PRODUCTS,SECTIONS,FLAVORS,RECIPES,DEFAULT_RECIPES,EXPLOSION_PRODUCTS,partTotal,invTotal,difOf,fmt,defaultCfg,sheetText,show,renderCount,renderSheet,renderHistory,renderConfig,flavorTotal,flavorPartTotal,flavorCellValue,tortillaPerBox,boxesPartTotal,partHasFlavors,bagTypesOf,boxesFlavorPart,partialFlavorPart,partialsOfTypePart,vaciasPart,vaciasTotal,printSheetHtml,renderPrintSheet,exportCfgText,importCfg,shareCfg,cleanCfg,cleanRecipes,recipesOf,explosionTotals,explosionOf,explosionBreakdown,sectionStops,nearestStop,updateThumb,maxScroll,b64encode,b64decode,compatCfg,compatDraftCanelo,maybeShowWelcome,saveWelcome,skipWelcome,prefsMissing};
+window.QH={get S(){return S;},scrollPos,PRODUCTS,SECTIONS,FLAVORS,RECIPES,DEFAULT_RECIPES,EXPLOSION_PRODUCTS,partTotal,invTotal,difOf,fmt,defaultCfg,sheetText,show,renderCount,renderSheet,renderHistory,renderConfig,flavorTotal,flavorPartTotal,flavorCellValue,tortillaPerBox,boxesPartTotal,partHasFlavors,bagTypesOf,boxesFlavorPart,partialFlavorPart,partialsOfTypePart,vaciasPart,vaciasTotal,printSheetHtml,renderPrintSheet,exportCfgText,importCfg,shareCfg,cleanCfg,cleanRecipes,recipesOf,explosionTotals,explosionOf,explosionBreakdown,sectionStops,nearestStop,updateThumb,maxScroll,b64encode,b64decode,compatCfg,compatDraftCanelo,maybeShowWelcome,saveWelcome,skipWelcome,prefsMissing,normText,applyCfgSearch};
 </script>
 </body>
 </html>
