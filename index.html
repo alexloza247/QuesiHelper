@@ -1724,7 +1724,10 @@ document.getElementById("view-config").addEventListener("change",e=>{
    va aquí (el papel no la tiene): solo queda en la vista de la app; en su
    lugar, en el espacio en blanco de cada renglón van los dos números
    contados en cuarto frío y en cocina, sin etiquetas, como los escribe la
-   gerenta. En CAJAS van el desglose por especialidad y el total de sartén
+   gerenta: los tercios solo guían la posición — cada valor va centrado en
+   el suyo (cuarto frío en el primer tercio, cocina en el segundo y el
+   tercer tercio queda vacío por ahora) — pero la casilla se ve como una
+   sola área en blanco, sin líneas ni bordes divisorios. En CAJAS van el desglose por especialidad y el total de sartén
    (en Cub) o canelo (en P/H), con la caja parcial como "8-1", y en la
    columna DEV van las cajas vacías contadas. DEV de tortillas, Dev/Mer
    y DIF/T van en blanco (se llenan a mano en el papel) y las casillas con
@@ -1761,7 +1764,7 @@ function printSheetHtml(rec){
   };
   const wT=[23,7].concat(Array(13).fill(3.77)).concat([5,7,9]);
   const wI=[23,7,40,8,7.5,8,6.5];
-  const wP=[42,10,12,12,12,12];
+  const wP=[42,10,8,8,8,12,12];
   let h='<div class="psheet">';
   // Encabezado
   h+='<table class="phead"><tr>'
@@ -1793,16 +1796,16 @@ function printSheetHtml(rec){
   PRODUCTS.filter(p=>p.sec==="INGREDIENTES").forEach(p=>{
     const inv=invTotal(rec,p.id);
     h+='<tr><td class="pn">'+esc(p.name)+'</td><td class="um">'+esc(p.um)+'</td>'
-      +'<td><span style="display:inline-block;width:49%;text-align:left">'+z(partTotal(rec,p.id,1))+'</span><span style="display:inline-block;width:49%;text-align:right">'+z(partTotal(rec,p.id,2))+'</span></td>'
+      +'<td><span style="display:inline-block;width:33%;text-align:center">'+z(partTotal(rec,p.id,1))+'</span><span style="display:inline-block;width:33%;text-align:center">'+z(partTotal(rec,p.id,2))+'</span><span style="display:inline-block;width:33%"></span></td>'
       +'<td></td><td class="num"><b>'+z(inv)+'</b></td><td class="num">'+kOf(p.id)+'</td><td></td></tr>';
   });
   h+='</table>';
   // SALSAS + ADEREZOS y REFRESCOS + DESECHABLES, lado a lado
   function pairTable(sec,title,invLabel,kardLabel){
     let t='<table class="ptable">'+printCols(wP)
-      +'<tr class="band"><th>'+title+'</th><th>UM</th><th></th><th></th><th>'+invLabel+'</th><th>'+kardLabel+'</th></tr>';
+      +'<tr class="band"><th>'+title+'</th><th>UM</th><th colspan="3"></th><th>'+invLabel+'</th><th>'+kardLabel+'</th></tr>';
     PRODUCTS.filter(p=>p.sec===sec).forEach(p=>{
-      t+='<tr><td class="pn">'+esc(p.name)+'</td><td class="um">'+esc(p.um)+'</td><td>'+z(partTotal(rec,p.id,1))+'</td><td class="num">'+z(partTotal(rec,p.id,2))+'</td><td class="num"><b>'+z(invTotal(rec,p.id))+'</b></td><td class="num">'+kOf(p.id)+'</td></tr>';
+      t+='<tr><td class="pn">'+esc(p.name)+'</td><td class="um">'+esc(p.um)+'</td><td colspan="3"><span style="display:inline-block;width:33%;text-align:center">'+z(partTotal(rec,p.id,1))+'</span><span style="display:inline-block;width:33%;text-align:center">'+z(partTotal(rec,p.id,2))+'</span><span style="display:inline-block;width:33%"></span></td><td class="num"><b>'+z(invTotal(rec,p.id))+'</b></td><td class="num">'+kOf(p.id)+'</td></tr>';
     });
     return t+'</table>';
   }
