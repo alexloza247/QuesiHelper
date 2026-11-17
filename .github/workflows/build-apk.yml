@@ -61,6 +61,7 @@ jobs:
         run: |
           if [ ! -d android ]; then npx cap add android; fi
           mkdir -p android/app/src/main/assets
+          if [ -f "adi-registration.properties" ]; then cp adi-registration.properties android/app/src/main/assets/; fi
           npx cap sync android
 
       - name: Generate App Icons from logo
@@ -75,10 +76,23 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug
 
+      - name: Sign APK
+        id: sign_app
+        uses: r0adkll/sign-android-release@v1
+        with:
+          releaseDirectory: android/app/build/outputs/apk/debug
+          signingKeyBase64: ${{ secrets.SIGNING_KEY }}
+          alias: ${{ secrets.ALIAS }}
+          keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
+          keyPassword: ${{ secrets.KEY_PASSWORD }}
+
+      - name: Mostrar huella SHA-256
+        run: keytool -printcert -jarfile "${{ steps.sign_app.outputs.signedReleaseFile }}" | grep "SHA256:"
+
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         timeout-minutes: 5
         with:
           name: QuesiHelper-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: ${{ steps.sign_app.outputs.signedReleaseFile }}
           retention-days: 7
