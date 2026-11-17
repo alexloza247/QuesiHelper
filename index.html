@@ -1793,6 +1793,9 @@ function renderSheet(){
   const readonly=!!ui.histId;
   const hdr=rec.header||{};
   let h='<h2>Hoja final'+(readonly?' · guardada':"")+'</h2>'
+    +'<button class="btn secondary" id="btn-share">📤 Compartir hoja</button>'
+    +'<button class="btn secondary" id="btn-copy">📋 Copiar hoja</button>'
+    +'<button class="btn secondary" id="btn-print">🖨️ Imprimir / PDF</button>'
     +'<div class="sheet"><div class="sheet-head"><div class="logo">FANÁTICOS<br>DE LA<br>PIZZA</div>'
     +'<table><tr><td><b>SUCURSAL:</b> '+esc(hdr.sucursal||"")+'</td><td><b>TURNO:</b> '+esc(hdr.turno||"")+'</td></tr>'
     +'<tr><td><b>FECHA:</b> '+esc(hdr.fecha||"")+'</td><td><b>HORA:</b> '+esc(hdr.hora||"")+'</td></tr></table>'
@@ -1803,9 +1806,6 @@ function renderSheet(){
   if(!readonly){
     h+='<button class="btn primary" id="btn-save-history">💾 Guardar en historial</button>';
   }
-  h+='<button class="btn secondary" id="btn-share">📤 Compartir hoja</button>'
-    +'<button class="btn secondary" id="btn-copy">📋 Copiar hoja</button>'
-    +'<button class="btn secondary" id="btn-print">🖨️ Imprimir / PDF</button>';
   if(readonly) h+='<button class="btn ghost" id="btn-back-history">← Volver al historial</button>';
   else h+='<button class="btn ghost" id="btn-back-count">← Volver al conteo</button>';
   el.innerHTML=h;
