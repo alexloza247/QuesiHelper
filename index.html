@@ -138,7 +138,7 @@
   #printSheet{display:none}
   @media print{
     @page{size:letter portrait;margin:5mm}
-    body{background:#fff;color:#000}
+    html,body{background:#fff!important;color:#000}
     header,nav,main,#toast,#welcome{display:none!important}
     #topbar,#quicknav{display:none!important}
     #printSheet{display:block!important;font-family:Arial,Helvetica,sans-serif;color:#000}
