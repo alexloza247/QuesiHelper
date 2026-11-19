@@ -153,6 +153,10 @@
     #printSheet table.ptable{width:100%;border-collapse:collapse;margin:0 0 2pt;table-layout:fixed}
     #printSheet table.ptable th,#printSheet table.ptable td{border:1px solid #000;padding:1.8pt 3pt;font-size:7.3pt;line-height:1.2}
     #printSheet table.ptable th{text-align:center;font-weight:700}
+    /* Encabezado Dev/Mer (4ª casilla de encabezado en INGREDIENTES y en las
+       tablas pareadas): permitir que "Dev/Mer" se parta en dos líneas
+       ("Dev/" sobre "Mer") para que quepa en su casilla sin salirse. */
+    #printSheet table.ptable th:nth-child(4){overflow-wrap:anywhere;font-size:6.5pt}
     #printSheet table.ptable td.pn{text-align:left}
     #printSheet table.ptable td.um{text-align:center;font-size:6.5pt}
     #printSheet table.ptable td.num{text-align:right;white-space:nowrap}
