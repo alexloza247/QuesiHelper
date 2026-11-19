@@ -58,7 +58,7 @@ public class PrintSheetPlugin extends Plugin {
                 // cabe en una página.
                 PrintAttributes attributes = new PrintAttributes.Builder()
                         .setMediaSize(PrintAttributes.MediaSize.NA_LETTER)
-                        .setMinMargins(new PrintAttributes.Margins(0.197f, 0.197f, 0.197f, 0.197f))
+                        .setMinMargins(new PrintAttributes.Margins(197, 197, 197, 197))
                         .build();
                 printManager.print(jobName, adapter, attributes);
                 JSObject ret = new JSObject();
