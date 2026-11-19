@@ -8,8 +8,9 @@
   *{box-sizing:border-box}
   /* Tamaño de letra (Configuración): --fs escala solo el texto en
      pantalla; cada font-size de la vista se multiplica por ella. El PDF
-     (#printSheet) tiene sus propios tamaños fijos dentro de @media print
-     y no se toca. */
+     (#printSheet) usa tamaños fijos en pt dentro de @media print (una
+     página carta, sin importar el tamaño de letra del teléfono) y no
+     se toca. */
   :root{--fs:1}
   html.fs-chico{--fs:.88}
   html.fs-grande{--fs:1.2}
@@ -138,31 +139,32 @@
   #printSheet{display:none}
   @media print{
     @page{size:letter portrait;margin:5mm}
-    html,body{background:#fff!important;color:#000}
+    html,body{background:#fff!important;color:#000;font-size:10pt!important;-webkit-text-size-adjust:100%;text-size-adjust:100%}
     header,nav,main,#toast,#welcome{display:none!important}
     #topbar,#quicknav{display:none!important}
-    #printSheet{display:block!important;font-family:Arial,Helvetica,sans-serif;color:#000}
-    #printSheet .psheet{border:2px solid #000;padding:4px 6px}
-    #printSheet table.phead{width:100%;border-collapse:collapse;margin-bottom:2px}
-    #printSheet table.phead td{border:1px solid #000;padding:2px 5px;font-size:10px;vertical-align:middle}
-    #printSheet table.phead td b{font-size:9.5px}
+    #printSheet{display:block!important;font-family:Arial,Helvetica,sans-serif;color:#000;font-size:8pt;line-height:1.15}
+    #printSheet .psheet{border:2px solid #000;padding:3pt 5pt}
+    #printSheet tr{page-break-inside:avoid}
+    #printSheet table.phead{width:100%;border-collapse:collapse;margin-bottom:2pt}
+    #printSheet table.phead td{border:1px solid #000;padding:1.5pt 4pt;font-size:8pt;line-height:1.15;vertical-align:middle}
+    #printSheet table.phead td b{font-size:7.5pt}
     #printSheet table.phead td.plogo{text-align:center;width:24%;vertical-align:middle}
-    #printSheet .pupd{text-align:right;font-size:8px}
-    #printSheet table.ptable{width:100%;border-collapse:collapse;margin:0 0 2px;table-layout:fixed}
-    #printSheet table.ptable th,#printSheet table.ptable td{border:1px solid #000;padding:2px 3px;font-size:9.5px;line-height:1.2}
+    #printSheet .pupd{text-align:right;font-size:6.5pt}
+    #printSheet table.ptable{width:100%;border-collapse:collapse;margin:0 0 2pt;table-layout:fixed}
+    #printSheet table.ptable th,#printSheet table.ptable td{border:1px solid #000;padding:1pt 2.5pt;font-size:7pt;line-height:1.15}
     #printSheet table.ptable th{text-align:center;font-weight:700}
     #printSheet table.ptable td.pn{text-align:left}
-    #printSheet table.ptable td.um{text-align:center;font-size:8.5px}
+    #printSheet table.ptable td.um{text-align:center;font-size:6.5pt}
     #printSheet table.ptable td.num{text-align:right;white-space:nowrap}
     #printSheet table.ptable tr.band th{background:#d9d9d9;print-color-adjust:exact;-webkit-print-color-adjust:exact}
-    #printSheet table.ppair{width:100%;border-collapse:collapse;margin:0 0 2px;table-layout:fixed}
-    #printSheet table.ppair>tbody>tr>td{border:none;padding:0 2px;vertical-align:top}
+    #printSheet table.ppair{width:100%;border-collapse:collapse;margin:0 0 2pt;table-layout:fixed}
+    #printSheet table.ppair>tbody>tr>td{border:none;padding:0 1.5pt;vertical-align:top}
     #printSheet table.ppair>tbody>tr>td:first-child{padding-left:0}
     #printSheet table.ppair>tbody>tr>td:last-child{padding-right:0}
-    #printSheet table.psigns{width:100%;border-collapse:collapse;margin-top:20mm}
-    #printSheet table.psigns td{border:none;text-align:center;font-size:9px;padding:0 12px}
+    #printSheet table.psigns{width:100%;border-collapse:collapse;margin-top:5mm}
+    #printSheet table.psigns td{border:none;text-align:center;font-size:7pt;padding:0 9pt}
     #printSheet table.psigns .ln{border-top:1px solid #000}
-    #printSheet table.psigns .lb{padding-top:2px}
+    #printSheet table.psigns .lb{padding-top:1.5pt}
   }
 </style>
 </head>
