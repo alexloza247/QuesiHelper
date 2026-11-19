@@ -51,8 +51,16 @@ public class PrintSheetPlugin extends Plugin {
                 }
                 String jobName = "Hoja del dia - Quesi-Helper";
                 PrintDocumentAdapter adapter = webView.createPrintDocumentAdapter(jobName);
-                printManager.print(
-                        jobName, adapter, new PrintAttributes.Builder().build());
+                // Tamaño carta y márgenes mínimos fijos: sin esto, el diálogo
+                // usa los valores por defecto del sistema/impresora (tamaño
+                // de papel y márgenes variables), y la hoja puede salir
+                // partida en dos páginas. Con carta + 5mm la hoja siempre
+                // cabe en una página.
+                PrintAttributes attributes = new PrintAttributes.Builder()
+                        .setMediaSize(PrintAttributes.MediaSize.NA_LETTER)
+                        .setMinMargins(new PrintAttributes.Margins(0.197f, 0.197f, 0.197f, 0.197f))
+                        .build();
+                printManager.print(jobName, adapter, attributes);
                 JSObject ret = new JSObject();
                 ret.put("ok", true);
                 call.resolve(ret);
