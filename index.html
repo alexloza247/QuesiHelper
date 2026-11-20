@@ -182,6 +182,7 @@
   <button data-view="count" class="on">Contar</button>
   <button data-view="sheet">Hoja</button>
   <button data-view="history">Historial</button>
+  <button data-view="tools">Más herramientas</button>
   <button data-view="config">Configuración</button>
 </nav>
 </div>
@@ -189,6 +190,7 @@
   <section id="view-count"></section>
   <section id="view-sheet" hidden></section>
   <section id="view-history" hidden></section>
+  <section id="view-tools" hidden><h2>Más herramientas</h2><div class="card"><p class="muted">Próximamente: formato de venta por hora del warmer.</p></div></section>
   <section id="view-config" hidden></section>
 </main>
 <div id="quicknav">
@@ -1349,7 +1351,7 @@ function show(view){
   scrollPos[ui.view]=window.scrollY;
   ui.view=view;
   document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("on",b.dataset.view===view));
-  ["count","sheet","history","config"].forEach(v=>{
+  ["count","sheet","history","tools","config"].forEach(v=>{
     document.getElementById("view-"+v).hidden=(v!==view);
   });
   if(view==="count") renderCount();
@@ -1357,8 +1359,8 @@ function show(view){
   if(view==="history") renderHistory();
   if(view==="config") renderConfig();
   /* La navegación rápida (slider + botones flotantes) solo se ve en
-     Contar, en sus tres vistas; en Hoja, Historial y Configuración
-     se esconde. */
+     Contar, en sus tres vistas; en Hoja, Historial, Más herramientas
+     y Configuración se esconde. */
   document.getElementById("quicknav").hidden=(view!=="count");
   window.scrollTo(0,scrollPos[view]||0);
   updateThumb();
