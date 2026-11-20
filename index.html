@@ -2389,8 +2389,9 @@ document.getElementById("view-config").addEventListener("change",e=>{
    como una sola área en blanco, sin líneas ni bordes divisorios. En CAJAS
    van el desglose por especialidad y el total de sartén
    (en Cub) o canelo (en P/H), con la caja parcial como "8-1", y en la
-   columna DEV van las cajas vacías contadas. DEV de tortillas, Dev/Mer
-   y DIF/T van en blanco (se llenan a mano en el papel) y las casillas con
+   columna DEV van las cajas vacías contadas. La DIF SÍ se escribe en el
+   PDF (INV − KARDEX, incluso si es 0); la DEV de tortillas y la T de
+   DIF/T van en blanco (se llenan a mano en el papel) y las casillas con
    valor 0 también van vacías. */
 function printCols(widths){
   return "<colgroup>"+widths.map(w=>'<col style="width:'+w+'%">').join("")+"</colgroup>";
@@ -2406,16 +2407,17 @@ function printSheetHtml(rec){
      tipo principal por especialidad en su columna; el total del tipo que se
      empaca en ese tamaño va en una columna fija — el canelo en P/H —; la
      caja parcial se escribe junto a las enteras de su especialidad ("8-1").
-     Las casillas de vacías, INV y KARDEX van UNA CASILLA A LA IZQUIERDA de
-     donde irían en la rejilla de TORTILLAS (el desglose usa solo las
-     primeras 12 especialidades, sin Cub): así la última casilla queda libre
-     para la Dev/Mer de la caja. El total de sartén ya no se muestra como
-     casilla en Cub, pero SIGUE sumando al INV (cajasFamiliarTotal lo
-     cuenta); el total de canelo sigue en P/H. En CAJAS, las cajas vacías
-     contadas van en la casilla de Cub (en blanco si son 0); DEV de
-     tortillas y DIF/T van en blanco en el PDF (se llenan a mano en el
-     papel). Dev/Mer SÍ se muestra en el PDF cuando hay devolución
-     (en blanco si es 0). */
+     Las casillas de vacías, INV, KARDEX y DIF van UNA CASILLA A LA
+     IZQUIERDA de donde irían en la rejilla de TORTILLAS (el desglose usa
+     solo las primeras 12 especialidades, sin Cub): así la última casilla
+     queda libre para la Dev/Mer de la caja. El total de sartén ya no se
+     muestra como casilla en Cub, pero SIGUE sumando al INV
+     (cajasFamiliarTotal lo cuenta); el total de canelo sigue en P/H. En
+     CAJAS, las cajas vacías contadas van en la casilla de Cub (en blanco
+     si son 0); la DIF se escribe en el PDF (INV − KARDEX, incluso si es
+     0) y la DEV de tortillas y la T de DIF/T van en blanco (se llenan a
+     mano en el papel). Dev/Mer SÍ se muestra en el PDF cuando hay
+     devolución (en blanco si es 0). */
   const cajaCells=(mainPid,extraPid,extraIdx,flavs)=>{
     const list=flavs||FLAVORS;
     return list.map((f,i)=>{
@@ -2430,11 +2432,11 @@ function printSheetHtml(rec){
       return '<td class="num">'+(partials>0?boxes+"-"+partials:boxes)+'</td>';
     }).join("");
   };
-  const wT=[23,7].concat(Array(13).fill(3.77)).concat([5,7,9]);
+  const wT=[23,7].concat(Array(13).fill(3.31)).concat([5,7,8,7]);
   const wI=[23,7,40,8,7.5,8,6.5];
   // SALSAS/ADEREZOS/REFRESCOS/DESECHABLES: una columna Dev/Mer entre los
-  // parciales y el INV (en blanco si es 0).
-  const wP=[38,9,7,7,7,8,12,12];
+  // parciales y el INV (en blanco si es 0) y la DIF al final.
+  const wP=[37,8,6.5,6.5,6.5,7,11,11,6.5];
   let h='<div class="psheet">';
   // Encabezado
   h+='<table class="phead"><tr>'
@@ -2442,26 +2444,26 @@ function printSheetHtml(rec){
     +'<td style="width:38%"><b>TURNO:</b> '+esc(hdr.turno||"")+'</td>'
     +'<td class="plogo" rowspan="2"><svg width="66" height="52" viewBox="0 0 100 78" xmlns="http://www.w3.org/2000/svg"><polygon points="3,3 97,3 50,75" fill="none" stroke="#000" stroke-width="2"/><text x="50" y="20" text-anchor="middle" font-size="10" font-weight="bold" font-family="Arial,sans-serif">FANATICOS</text><text x="50" y="33" text-anchor="middle" font-size="8" font-family="Arial,sans-serif">DE LA</text><text x="50" y="50" text-anchor="middle" font-size="12" font-weight="bold" font-family="Arial,sans-serif">PIZZA</text></svg><div class="pupd">Actualizado Junio 2025 Op</div></td></tr>'
     +'<tr><td><b>FECHA:</b> '+esc(hdr.fecha||"")+'</td><td><b>HORA:</b> '+esc(hdr.hora||"")+'</td></tr></table>';
-  // CAJAS: misma rejilla que TORTILLAS (18 columnas), pero vacías, INV y
-  // KARDEX van una casilla a la izquierda (desglose de 12 especialidades,
-  // sin Cub) y la última casilla lleva la Dev/Mer de la caja.
+  // CAJAS: misma rejilla que TORTILLAS (19 columnas), pero vacías, INV,
+  // KARDEX y DIF van una casilla a la izquierda (desglose de 12
+  // especialidades, sin Cub) y la última casilla lleva la Dev/Mer de la caja.
   h+='<table class="ptable">'+printCols(wT)
-    +'<tr><th>PRODUCTOS</th><th>UM</th>'+("<th></th>").repeat(16)+'</tr>'
-    +'<tr class="band"><th>CAJAS</th><th>UM</th>'+("<th></th>").repeat(16)+'</tr>';
+    +'<tr><th>PRODUCTOS</th><th>UM</th>'+("<th></th>").repeat(17)+'</tr>'
+    +'<tr class="band"><th>CAJAS</th><th>UM</th>'+("<th></th>").repeat(17)+'</tr>';
   PRODUCTS.filter(p=>p.sec==="CAJAS").forEach(p=>{
     const cells=p.id==="caja-familiar-qp"?cajaCells("tortilla-familiar","tortilla-sarten",12,FLAVORS.slice(0,12)):cajaCells("tortilla-chica","tortilla-canelo",6,FLAVORS.slice(0,12));
-    h+='<tr><td class="pn">'+esc(p.name)+'</td><td class="um">'+esc(p.um)+'</td>'+cells+'<td class="num">'+z(vaciasTotal(rec,p.id))+'</td><td class="num">'+z(invTotal(rec,p.id))+'</td><td class="num">'+kOf(p.id)+'</td><td class="num">'+z(num(rec.devmer&&rec.devmer[p.id]))+'</td></tr>';
+    h+='<tr><td class="pn">'+esc(p.name)+'</td><td class="um">'+esc(p.um)+'</td>'+cells+'<td class="num">'+z(vaciasTotal(rec,p.id))+'</td><td class="num">'+z(invTotal(rec,p.id))+'</td><td class="num">'+kOf(p.id)+'</td><td class="num">'+fmt(difOf(rec,p.id))+'</td><td class="num">'+z(num(rec.devmer&&rec.devmer[p.id]))+'</td></tr>';
   });
   h+='</table>';
   // TORTILLAS
   h+='<table class="ptable">'+printCols(wT)
-    +'<tr class="band"><th>TORTILLAS</th><th>UM</th>'+FLAVORS.map(f=>"<th>"+f.code+"</th>").join("")+'<th>DEV</th><th>INV</th><th>KARDEX</th></tr>';
+    +'<tr class="band"><th>TORTILLAS</th><th>UM</th>'+FLAVORS.map(f=>"<th>"+f.code+"</th>").join("")+'<th>DEV</th><th>INV</th><th>KARDEX</th><th>DIF</th></tr>';
   PRODUCTS.filter(p=>p.sec==="TORTILLAS").forEach(p=>{
     // La casilla DEV lleva la Dev/Mer de la tortilla (la DEV manual de
     // tortillas no se imprime: se llena a mano en el papel).
     h+='<tr><td class="pn">'+esc(p.name)+'</td><td class="um">'+esc(p.um)+'</td>'
       +FLAVORS.map(f=>'<td class="num">'+flVal(p.id,f.code)+'</td>').join("")
-      +'<td class="num">'+z(num(rec.devmer&&rec.devmer[p.id]))+'</td><td class="num"><b>'+z(invTotal(rec,p.id))+'</b></td><td class="num">'+kOf(p.id)+'</td></tr>';
+      +'<td class="num">'+z(num(rec.devmer&&rec.devmer[p.id]))+'</td><td class="num"><b>'+z(invTotal(rec,p.id))+'</b></td><td class="num">'+kOf(p.id)+'</td><td class="num">'+fmt(difOf(rec,p.id))+'</td></tr>';
   });
   h+='</table>';
   // INGREDIENTES
@@ -2477,15 +2479,15 @@ function printSheetHtml(rec){
     const exVal=exKey?num(explosionOf(rec)[exKey]):0;
     h+='<tr><td class="pn">'+esc(p.name)+'</td><td class="um">'+esc(p.um)+'</td>'
       +'<td><span style="display:inline-block;width:33%;text-align:center">'+z(partTotal(rec,p.id,1))+'</span><span style="display:inline-block;width:33%;text-align:center">'+z(partTotal(rec,p.id,2))+'</span><span style="display:inline-block;width:33%;text-align:center">'+(exKey?fmt(exVal):"")+'</span></td>'
-      +'<td class="num">'+z(num(rec.devmer&&rec.devmer[p.id]))+'</td><td class="num"><b>'+z(inv)+'</b></td><td class="num">'+kOf(p.id)+'</td><td></td></tr>';
+      +'<td class="num">'+z(num(rec.devmer&&rec.devmer[p.id]))+'</td><td class="num"><b>'+z(inv)+'</b></td><td class="num">'+kOf(p.id)+'</td><td class="num">'+fmt(difOf(rec,p.id))+'</td></tr>';
   });
   h+='</table>';
   // SALSAS + ADEREZOS y REFRESCOS + DESECHABLES, lado a lado
   function pairTable(sec,title,invLabel,kardLabel){
     let t='<table class="ptable">'+printCols(wP)
-      +'<tr class="band"><th>'+title+'</th><th>UM</th><th colspan="3"></th><th>Dev/Mer</th><th>'+invLabel+'</th><th>'+kardLabel+'</th></tr>';
+      +'<tr class="band"><th>'+title+'</th><th>UM</th><th colspan="3"></th><th>Dev/Mer</th><th>'+invLabel+'</th><th>'+kardLabel+'</th><th>DIF</th></tr>';
     PRODUCTS.filter(p=>p.sec===sec).forEach(p=>{
-      t+='<tr><td class="pn">'+esc(p.name)+'</td><td class="um">'+esc(p.um)+'</td><td colspan="3"><span style="display:inline-block;width:33%;text-align:center">'+z(partTotal(rec,p.id,1))+'</span><span style="display:inline-block;width:33%;text-align:center">'+z(partTotal(rec,p.id,2))+'</span><span style="display:inline-block;width:33%"></span></td><td class="num">'+z(num(rec.devmer&&rec.devmer[p.id]))+'</td><td class="num"><b>'+z(invTotal(rec,p.id))+'</b></td><td class="num">'+kOf(p.id)+'</td></tr>';
+      t+='<tr><td class="pn">'+esc(p.name)+'</td><td class="um">'+esc(p.um)+'</td><td colspan="3"><span style="display:inline-block;width:33%;text-align:center">'+z(partTotal(rec,p.id,1))+'</span><span style="display:inline-block;width:33%;text-align:center">'+z(partTotal(rec,p.id,2))+'</span><span style="display:inline-block;width:33%"></span></td><td class="num">'+z(num(rec.devmer&&rec.devmer[p.id]))+'</td><td class="num"><b>'+z(invTotal(rec,p.id))+'</b></td><td class="num">'+kOf(p.id)+'</td><td class="num">'+fmt(difOf(rec,p.id))+'</td></tr>';
     });
     return t+'</table>';
   }
