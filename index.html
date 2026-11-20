@@ -1797,8 +1797,9 @@ function renderSheet(){
     return;
   }
   const readonly=!!ui.histId;
+  const editing=!!(S.draft&&S.draft._editId);
   const hdr=rec.header||{};
-  let h='<h2>Hoja final'+(readonly?' · guardada':"")+'</h2>'
+  let h='<h2>Hoja final'+(readonly?' · guardada':(editing?' · editando':""))+'</h2>'
     +'<button class="btn secondary" id="btn-share">📤 Compartir hoja</button>'
     +'<button class="btn secondary" id="btn-copy">📋 Copiar hoja</button>'
     +'<button class="btn secondary" id="btn-print">🖨️ Imprimir / PDF</button>'
@@ -1810,7 +1811,7 @@ function renderSheet(){
   h+='<p class="note">Las columnas de Tortillas son las especialidades de pizza (C = Sin quesear, Q = Queso, PP = Peperonni, H = Hawaiana, Sup = Suprema, 3C = 3 carnes, P/H = Peperonni/Hawaiana, P/S = Peperonni/Suprema, P/M = Peperonni/Mexicana, Pas = Pastor, Jam = Jamón, Mex = Mexicana, Cub = Cubana). Cada celda = cajas × tortillas por caja + sueltas, sumando cuarto frío y cocina. Por caja: Sin quesear — Familiar 3, Chica 2, Sartén 1; con especialidad — Familiar 2, Chica 2, Sartén 1. La Tortilla Canelo es un postre sin especialidades: 1 por caja, se cuenta por cajas y sueltas y su total va en la columna C. Cada caja es de una sola especialidad. INV de tortillas = suma de las 13 especialidades. Las cajas se calculan solas de las tortillas: Caja familiar QP = cajas de Tortilla Familiar + Tortilla Sartén + cajas vacías familiares; Caja Chica = cajas de Tortilla Chica + Tortilla Canelo + cajas vacías chicas (una caja con sueltas cuenta como caja). La columna DEV de las cajas muestra las cajas vacías contadas. DEV de tortillas se llena a mano. Dev/Mer (devolución o merma) se marca en el conteo con su cuadrito en cualquier producto o se escribe aquí: la cantidad se suma al INV y también se ve en el PDF; en las filas de cajas del PDF, las vacías, el INV y el KARDEX van una casilla a la izquierda y la última casilla lleva la Dev/Mer. En Ingredientes, la columna CF / COC muestra lo contado en cuarto frío y en cocina por producto. La explosión (Expl) muestra en Queso, Pasta p/ Pizza y Pepperoni los insumos que se usaron para las pizzas que quedaron en el inventario (tercer tercio de la casilla); en esos tres productos el INV es la suma de cuarto frío + cocina + explosión + Dev/Mer (en los demás, cuarto frío + cocina + Dev/Mer). DIF = INV − KARDEX.</p>'
     +'<div class="signs"><div>Firma del Gerente</div><div>Firma del Cajero</div><div>Firma del Gerente de zona / Auditor</div></div></div>';
   if(!readonly){
-    h+='<button class="btn primary" id="btn-save-history">💾 Guardar en historial</button>';
+    h+='<button class="btn primary" id="btn-save-history">💾 '+(editing?'Guardar cambios':'Guardar en historial')+'</button>';
   }
   if(readonly) h+='<button class="btn ghost" id="btn-back-history">← Volver al historial</button>';
   else h+='<button class="btn ghost" id="btn-back-count">← Volver al conteo</button>';
@@ -1856,9 +1857,48 @@ document.getElementById("view-sheet").addEventListener("input",e=>{
     if(cell) cell.innerHTML="<b>"+fmt(difOf(S.draft,pid))+"</b>";
   }
 });
+/* ¿El borrador tiene algo capturado (conteo sin terminar)? */
+function draftHasData(d){
+  if(!d) return false;
+  return PRODUCTS.some(p=>hasData(d,p.id));
+}
+/* Editar una hoja guardada desde el historial: carga una copia como
+   borrador (con marca _editId) para corregirla en Contar/Hoja final y
+   guardarla de vuelta en el MISMO registro. Si hay un conteo sin
+   terminar, primero pide guardarlo para no sobreescribir nada. */
+function editHist(id){
+  const rec=S.history.find(r=>r.id===id);
+  if(!rec) return;
+  if(S.draft&&draftHasData(S.draft)){
+    if(!confirm("Tienes un conteo sin terminar. ¿Quieres guardarlo en el historial antes de editar esta hoja?")) return;
+    saveToHistory();
+  }
+  const clone=JSON.parse(JSON.stringify(rec));
+  clone._editId=rec.id;
+  S.draft=clone;
+  ui.histId=null;
+  save();
+  show("sheet");
+}
 function saveToHistory(){
   if(!S.draft) return;
   const rec=JSON.parse(JSON.stringify(S.draft));
+  const editId=rec._editId||null;
+  delete rec._editId;
+  rec.savedAt=Date.now();
+  /* Editando una hoja del historial: se actualiza el MISMO registro
+     (mismo id y misma posición), no se crea uno nuevo. Si el registro
+     ya no existe (se borró mientras tanto), se guarda como nuevo. */
+  const idx=editId?S.history.findIndex(r=>r.id===editId):-1;
+  if(idx>=0){
+    rec.id=editId;
+    S.history[idx]=rec;
+    S.draft=null;
+    save();
+    toast("Inventario actualizado");
+    show("history");
+    return;
+  }
   rec.id="inv-"+Date.now();
   rec.savedAt=Date.now();
   S.history.unshift(rec);
@@ -1948,11 +1988,15 @@ function renderHistory(){
     h+='<div class="hist-item"><b>'+esc(hdr.fecha||"Sin fecha")+' · '+esc(hdr.turno||"Sin turno")+'</b><br>'
       +'<span class="muted">'+esc(hdr.sucursal||"Sin sucursal")+' · '+esc(hdr.hora||"")+' · '+counted+' productos con inventario</span>'
       +'<div class="row" style="margin-top:8px"><button class="btn small primary" data-view-hist="'+rec.id+'">Ver hoja</button>'
+      +'<button class="btn small secondary" data-edit-hist="'+rec.id+'">✏️ Editar</button>'
       +'<button class="btn small ghost" data-del-hist="'+rec.id+'">Borrar</button></div></div>';
   });
   el.innerHTML=h;
   el.querySelectorAll("[data-view-hist]").forEach(b=>b.addEventListener("click",()=>{
     ui.histId=b.dataset.viewHist; show("sheet");
+  }));
+  el.querySelectorAll("[data-edit-hist]").forEach(b=>b.addEventListener("click",()=>{
+    editHist(b.dataset.editHist);
   }));
   el.querySelectorAll("[data-del-hist]").forEach(b=>b.addEventListener("click",()=>{
     if(confirm("¿Borrar este inventario guardado?")){
@@ -2468,7 +2512,7 @@ document.getElementById("btn-welcome-save").addEventListener("click",saveWelcome
 document.getElementById("btn-welcome-later").addEventListener("click",skipWelcome);
 document.getElementById("welcome").addEventListener("click",e=>{ if(e.target.id==="welcome") skipWelcome(); });
 maybeShowWelcome();
-window.QH={get S(){return S;},scrollPos,PRODUCTS,SECTIONS,FLAVORS,RECIPES,DEFAULT_RECIPES,EXPLOSION_PRODUCTS,partTotal,invTotal,difOf,fmt,defaultCfg,sheetText,show,renderCount,renderSheet,renderHistory,renderConfig,flavorTotal,flavorPartTotal,flavorCellValue,tortillaPerBox,boxesPartTotal,partHasFlavors,bagTypesOf,boxesFlavorPart,partialFlavorPart,partialsOfTypePart,vaciasPart,vaciasTotal,printSheetHtml,renderPrintSheet,exportCfgText,importCfg,shareCfg,cleanCfg,cleanRecipes,recipesOf,explosionTotals,explosionOf,explosionBreakdown,sectionStops,nearestStop,updateThumb,maxScroll,b64encode,b64decode,compatCfg,compatDraftCanelo,maybeShowWelcome,saveWelcome,skipWelcome,prefsMissing,normText,applyCfgSearch,hasCapPrintSheet,printSheetNative,FONT_SIZES,applyFontSize,updateCountHeadTop};
+window.QH={get S(){return S;},scrollPos,PRODUCTS,SECTIONS,FLAVORS,RECIPES,DEFAULT_RECIPES,EXPLOSION_PRODUCTS,partTotal,invTotal,difOf,fmt,defaultCfg,sheetText,show,renderCount,renderSheet,renderHistory,renderConfig,flavorTotal,flavorPartTotal,flavorCellValue,tortillaPerBox,boxesPartTotal,partHasFlavors,bagTypesOf,boxesFlavorPart,partialFlavorPart,partialsOfTypePart,vaciasPart,vaciasTotal,printSheetHtml,renderPrintSheet,exportCfgText,importCfg,shareCfg,cleanCfg,cleanRecipes,recipesOf,explosionTotals,explosionOf,explosionBreakdown,sectionStops,nearestStop,updateThumb,maxScroll,b64encode,b64decode,compatCfg,compatDraftCanelo,maybeShowWelcome,saveWelcome,skipWelcome,prefsMissing,normText,applyCfgSearch,hasCapPrintSheet,printSheetNative,FONT_SIZES,applyFontSize,updateCountHeadTop,editHist,draftHasData};
 </script>
 </body>
 </html>
