@@ -144,7 +144,7 @@
     header,nav,main,#toast,#welcome{display:none!important}
     #topbar,#quicknav{display:none!important}
     #printSheet{display:block!important;font-family:Arial,Helvetica,sans-serif;color:#000;font-size:8.5pt;line-height:1.2}
-    #printSheet .psheet{border:2px solid #000;padding:5pt 6pt}
+    #printSheet .psheet{border:2px solid #000;padding:4pt 6pt}
     #printSheet tr{page-break-inside:avoid}
     #printSheet table.phead{width:100%;border-collapse:collapse;margin-bottom:2pt}
     #printSheet table.phead td{border:1px solid #000;padding:2.5pt 5pt;font-size:8.5pt;line-height:1.2;vertical-align:middle}
@@ -152,7 +152,7 @@
     #printSheet table.phead td.plogo{text-align:center;width:24%;vertical-align:middle}
     #printSheet .pupd{text-align:right;font-size:6.5pt}
     #printSheet table.ptable{width:100%;border-collapse:collapse;margin:0 0 2pt;table-layout:fixed}
-    #printSheet table.ptable th,#printSheet table.ptable td{border:1px solid #000;padding:1.8pt 3pt;font-size:7.3pt;line-height:1.2}
+    #printSheet table.ptable th,#printSheet table.ptable td{border:1px solid #000;padding:1pt 3pt;font-size:7pt;line-height:1.12}
     #printSheet table.ptable th{text-align:center;font-weight:700}
     /* Encabezado Dev/Mer (4ª casilla de encabezado en INGREDIENTES y en las
        tablas pareadas): permitir que "Dev/Mer" se parta en dos líneas
@@ -170,7 +170,7 @@
     #printSheet table.ppair>tbody>tr>td{border:none;padding:0 1.5pt;vertical-align:top}
     #printSheet table.ppair>tbody>tr>td:first-child{padding-left:0}
     #printSheet table.ppair>tbody>tr>td:last-child{padding-right:0}
-    #printSheet table.psigns{width:100%;border-collapse:collapse;margin-top:6mm}
+    #printSheet table.psigns{width:100%;border-collapse:collapse;margin-top:4mm}
     #printSheet table.psigns td{border:none;text-align:center;font-size:7.3pt;padding:0 9pt}
     #printSheet table.psigns .ln{border-top:1px solid #000}
     #printSheet table.psigns .lb{padding-top:1.5pt}
@@ -2455,7 +2455,7 @@ function printSheetHtml(rec){
   h+='<table class="phead"><tr>'
     +'<td style="width:38%"><b>SUCURSAL:</b> '+esc(hdr.sucursal||"")+'</td>'
     +'<td style="width:38%"><b>TURNO:</b> '+esc(hdr.turno||"")+'</td>'
-    +'<td class="plogo" rowspan="2"><svg width="66" height="52" viewBox="0 0 100 78" xmlns="http://www.w3.org/2000/svg"><polygon points="3,3 97,3 50,75" fill="none" stroke="#000" stroke-width="2"/><text x="50" y="20" text-anchor="middle" font-size="10" font-weight="bold" font-family="Arial,sans-serif">FANATICOS</text><text x="50" y="33" text-anchor="middle" font-size="8" font-family="Arial,sans-serif">DE LA</text><text x="50" y="50" text-anchor="middle" font-size="12" font-weight="bold" font-family="Arial,sans-serif">PIZZA</text></svg><div class="pupd">Actualizado Junio 2025 Op</div></td></tr>'
+    +'<td class="plogo" rowspan="2"><svg width="58" height="46" viewBox="0 0 100 78" xmlns="http://www.w3.org/2000/svg"><polygon points="3,3 97,3 50,75" fill="none" stroke="#000" stroke-width="2"/><text x="50" y="20" text-anchor="middle" font-size="10" font-weight="bold" font-family="Arial,sans-serif">FANATICOS</text><text x="50" y="33" text-anchor="middle" font-size="8" font-family="Arial,sans-serif">DE LA</text><text x="50" y="50" text-anchor="middle" font-size="12" font-weight="bold" font-family="Arial,sans-serif">PIZZA</text></svg><div class="pupd">Actualizado Junio 2025 Op</div></td></tr>'
     +'<tr><td><b>FECHA:</b> '+esc(hdr.fecha||"")+'</td><td><b>HORA:</b> '+esc(hdr.hora||"")+'</td></tr></table>';
   // CAJAS: misma rejilla que TORTILLAS (19 columnas): desglose de 12
   // especialidades (sin Cub, esa casilla queda vacía), vacías en DEV,
