@@ -158,6 +158,10 @@
        tablas pareadas): permitir que "Dev/Mer" se parta en dos líneas
        ("Dev/" sobre "Mer") para que quepa en su casilla sin salirse. */
     #printSheet table.ptable th:nth-child(4){overflow-wrap:anywhere;font-size:6.5pt}
+    /* Casilla de parciales en las tablas pareadas: una sola columna donde
+       se guardan los datos de cuarto frío (izquierda) y cocina (derecha). */
+    #printSheet table.ptable td.pp{padding:1.8pt 0.5pt;font-size:5.5pt}
+    #printSheet table.ptable td.pp .ppf{display:flex;justify-content:space-between}
     #printSheet table.ptable td.pn{text-align:left}
     #printSheet table.ptable td.um{text-align:center;font-size:6.5pt}
     #printSheet table.ptable td.num{text-align:right;white-space:nowrap}
@@ -2441,10 +2445,11 @@ function printSheetHtml(rec){
   // INGREDIENTES: todas las columnas de valores (parciales, Dev/Mer, INV,
   // KARDEX y DIF/T) del mismo ancho para que se vean simétricas.
   const wI=[23,7,14,14,14,14,14];
-  // SALSAS/ADEREZOS/REFRESCOS/DESECHABLES: todas las columnas de valores
-  // (parciales, Dev/Mer, INV, KARD y DIF) del mismo ancho para que se vean
-  // simétricas; PRODUCTO se queda ancha para que quepan los nombres.
-  const wP=[37,8,7.857,7.857,7.857,7.857,7.857,7.857,7.857];
+  // SALSAS/ADEREZOS/REFRESCOS/DESECHABLES: 7 columnas en total
+  // (PRODUCTO, UM, parciales, Dev/Mer, INV, KARDEX, DIF). Las 5 columnas
+  // marcadas (parciales, Dev/Mer, INV, KARDEX, DIF) miden igual (11%);
+  // la casilla de parciales guarda los datos de cuarto frío y cocina.
+  const wP=[37,8,11,11,11,11,11];
   let h='<div class="psheet">';
   // Encabezado
   h+='<table class="phead"><tr>'
@@ -2493,9 +2498,9 @@ function printSheetHtml(rec){
   // SALSAS + ADEREZOS y REFRESCOS + DESECHABLES, lado a lado
   function pairTable(sec,title,invLabel,kardLabel){
     let t='<table class="ptable">'+printCols(wP)
-      +'<tr class="band"><th>'+title+'</th><th>UM</th><th></th><th></th><th></th><th>Dev/Mer</th><th>'+invLabel+'</th><th>'+kardLabel+'</th><th>DIF</th></tr>';
+      +'<tr class="band"><th>'+title+'</th><th>UM</th><th></th><th>Dev/Mer</th><th>'+invLabel+'</th><th>'+kardLabel+'</th><th>DIF</th></tr>';
     PRODUCTS.filter(p=>p.sec===sec).forEach(p=>{
-      t+='<tr><td class="pn">'+esc(p.name)+'</td><td class="um">'+esc(p.um)+'</td><td style="text-align:center">'+z(partTotal(rec,p.id,1))+'</td><td style="text-align:center">'+z(partTotal(rec,p.id,2))+'</td><td></td><td class="num">'+z(num(rec.devmer&&rec.devmer[p.id]))+'</td><td class="num"><b>'+z(invTotal(rec,p.id))+'</b></td><td class="num">'+kOf(p.id)+'</td><td class="num">'+fmt(difOf(rec,p.id))+'</td></tr>';
+      t+='<tr><td class="pn">'+esc(p.name)+'</td><td class="um">'+esc(p.um)+'</td><td class="pp"><span class="ppf"><span>'+z(partTotal(rec,p.id,1))+'</span><span>'+z(partTotal(rec,p.id,2))+'</span></span></td><td class="num">'+z(num(rec.devmer&&rec.devmer[p.id]))+'</td><td class="num"><b>'+z(invTotal(rec,p.id))+'</b></td><td class="num">'+kOf(p.id)+'</td><td class="num">'+fmt(difOf(rec,p.id))+'</td></tr>';
     });
     return t+'</table>';
   }
