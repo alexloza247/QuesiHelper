@@ -2442,9 +2442,9 @@ function printSheetHtml(rec){
     }).join("");
   };
   const wT=[23,7].concat(Array(13).fill(3.31)).concat([5,7,8,7]);
-  // INGREDIENTES: todas las columnas de valores (parciales, Dev/Mer, INV,
-  // KARDEX y DIF/T) del mismo ancho para que se vean simétricas.
-  const wI=[23,7,14,14,14,14,14];
+  // INGREDIENTES se queda como en la hoja original (casilla de parciales
+  // ancha con cuarto frío, cocina y explosión).
+  const wI=[23,7,40,8,7.5,8,6.5];
   // SALSAS/ADEREZOS/REFRESCOS/DESECHABLES: 7 columnas en total
   // (PRODUCTO, UM, parciales, Dev/Mer, INV, KARDEX, DIF). La casilla de
   // parciales (cuarto frío y cocina) va un poco más ancha para que quepan
