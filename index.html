@@ -2446,10 +2446,10 @@ function printSheetHtml(rec){
   // KARDEX y DIF/T) del mismo ancho para que se vean simétricas.
   const wI=[23,7,14,14,14,14,14];
   // SALSAS/ADEREZOS/REFRESCOS/DESECHABLES: 7 columnas en total
-  // (PRODUCTO, UM, parciales, Dev/Mer, INV, KARDEX, DIF). Las 5 columnas
-  // marcadas (parciales, Dev/Mer, INV, KARDEX, DIF) miden igual (11%);
-  // la casilla de parciales guarda los datos de cuarto frío y cocina.
-  const wP=[37,8,11,11,11,11,11];
+  // (PRODUCTO, UM, parciales, Dev/Mer, INV, KARDEX, DIF). La casilla de
+  // parciales (cuarto frío y cocina) va un poco más ancha para que quepan
+  // bien los datos; Dev/Mer, INV, KARDEX y DIF miden igual entre sí.
+  const wP=[34,8,14,11,11,11,11];
   let h='<div class="psheet">';
   // Encabezado
   h+='<table class="phead"><tr>'
