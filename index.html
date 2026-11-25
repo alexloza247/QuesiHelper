@@ -1992,8 +1992,8 @@ const HIST_EXPORT_FOLDER="Quesi-Helper";
 function histFileName(){
   return "quesihelper-inventarios-"+isoDate(new Date())+".json";
 }
-function histExportPayload(){
-  return {app:"quesihelper",type:"inventarios",version:1,exportedAt:Date.now(),history:S.history};
+function histExportPayload(records){
+  return {app:"quesihelper",type:"inventarios",version:1,exportedAt:Date.now(),history:records||S.history};
 }
 function hasCapBackupDownload(){try{var C=window.Capacitor;return !!(C&&C.Plugins&&C.Plugins.BackupDownload&&C.Plugins.BackupDownload.save)}catch(e){return false}}
 function downloadHistFile(txt,fname){
@@ -2008,7 +2008,7 @@ function downloadHistFile(txt,fname){
     return true;
   }catch(e){return false}
 }
-function shareHistFile(txt,fname){
+function shareHistFile(txt,fname,count){
   try{
     var file=new File([txt],fname,{type:"application/json"});
     if(navigator.canShare&&navigator.canShare({files:[file]})){
@@ -2016,21 +2016,33 @@ function shareHistFile(txt,fname){
       return true;
     }
   }catch(e){}
-  if(downloadHistFile(txt,fname)){toast("Inventarios exportados ("+S.history.length+")");return true;}
+  if(downloadHistFile(txt,fname)){toast("Inventarios exportados ("+count+")");return true;}
   toast("No se pudo exportar");
   return false;
 }
-function exportHist(){
-  if(!S.history.length){toast("No hay inventarios para exportar");return;}
-  var txt=JSON.stringify(histExportPayload());
-  var fname=histFileName();
+/* Guarda el archivo de inventarios: en la app con el plugin nativo a
+   Descargas/Quesi-Helper; si falla o no está, menú de compartir y, en el
+   navegador, descarga directa. count = cuántos inventarios trae el archivo. */
+function saveHistFile(txt,fname,count){
   if(hasCapBackupDownload()){
     try{
       var p=window.Capacitor.Plugins.BackupDownload.save({filename:fname,data:txt,folder:HIST_EXPORT_FOLDER});
-      if(p&&p.then){p.then(function(){toast("Inventarios guardados en Descargas/"+HIST_EXPORT_FOLDER+" ("+S.history.length+")")},function(){shareHistFile(txt,fname)});return;}
+      if(p&&p.then){p.then(function(){toast(count+" inventario"+(count===1?"":"s")+" guardado"+(count===1?"":"s")+" en Descargas/"+HIST_EXPORT_FOLDER)},function(){shareHistFile(txt,fname,count)});return;}
     }catch(e){}
   }
-  shareHistFile(txt,fname);
+  shareHistFile(txt,fname,count);
+}
+function exportHist(){
+  if(!S.history.length){toast("No hay inventarios para exportar");return;}
+  saveHistFile(JSON.stringify(histExportPayload()),histFileName(),S.history.length);
+}
+/* Exporta UN solo inventario elegido de la lista (el archivo trae solo ese). */
+function exportHistOne(id){
+  var rec=S.history.find(function(r){return r.id===id;});
+  if(!rec){toast("No se encontró ese inventario");return;}
+  var hdr=rec.header||{};
+  var fecha=/^\d{4}-\d{2}-\d{2}$/.test(hdr.fecha||"")?hdr.fecha:isoDate(new Date());
+  saveHistFile(JSON.stringify(histExportPayload([rec])),"quesihelper-inventario-"+fecha+".json",1);
 }
 /* Limpia un inventario importado: estructura mínima válida (encabezado,
    conteos por parte, kardex, dev, devmer, sabores) con valores por defecto.
@@ -2114,6 +2126,7 @@ function renderHistory(){
       +'<span class="muted">'+esc(hdr.sucursal||"Sin sucursal")+' · '+esc(hdr.hora||"")+' · '+counted+' productos con inventario</span>'
       +'<div class="row" style="margin-top:8px"><button class="btn small primary" data-view-hist="'+rec.id+'">Ver hoja</button>'
       +'<button class="btn small secondary" data-edit-hist="'+rec.id+'">✏️ Editar</button>'
+      +'<button class="btn small secondary" data-exp-hist="'+rec.id+'">📤 Exportar</button>'
       +'<button class="btn small ghost" data-del-hist="'+rec.id+'">Borrar</button></div></div>';
   });
   el.innerHTML=h;
@@ -2130,6 +2143,9 @@ function renderHistory(){
   }));
   el.querySelectorAll("[data-edit-hist]").forEach(b=>b.addEventListener("click",()=>{
     editHist(b.dataset.editHist);
+  }));
+  el.querySelectorAll("[data-exp-hist]").forEach(b=>b.addEventListener("click",()=>{
+    exportHistOne(b.dataset.expHist);
   }));
   el.querySelectorAll("[data-del-hist]").forEach(b=>b.addEventListener("click",()=>{
     if(confirm("¿Borrar este inventario guardado?")){
@@ -2655,7 +2671,7 @@ document.getElementById("btn-welcome-save").addEventListener("click",saveWelcome
 document.getElementById("btn-welcome-later").addEventListener("click",skipWelcome);
 document.getElementById("welcome").addEventListener("click",e=>{ if(e.target.id==="welcome") skipWelcome(); });
 maybeShowWelcome();
-window.QH={get S(){return S;},scrollPos,PRODUCTS,SECTIONS,FLAVORS,RECIPES,DEFAULT_RECIPES,EXPLOSION_PRODUCTS,partTotal,invTotal,difOf,fmt,defaultCfg,sheetText,show,renderCount,renderSheet,renderHistory,renderConfig,flavorTotal,flavorPartTotal,flavorCellValue,tortillaPerBox,boxesPartTotal,partHasFlavors,bagTypesOf,boxesFlavorPart,partialFlavorPart,partialsOfTypePart,vaciasPart,vaciasTotal,printSheetHtml,renderPrintSheet,exportCfgText,importCfg,shareCfg,cleanCfg,cleanRecipes,recipesOf,explosionTotals,explosionOf,explosionBreakdown,sectionStops,nearestStop,updateThumb,maxScroll,b64encode,b64decode,compatCfg,compatDraftCanelo,maybeShowWelcome,saveWelcome,skipWelcome,prefsMissing,normText,applyCfgSearch,hasCapPrintSheet,printSheetNative,FONT_SIZES,applyFontSize,updateCountHeadTop,editHist,draftHasData,histExportPayload,cleanHistRecord,importHistData,exportHist,importHistFile,histFileName,migrateCaneloRecord};
+window.QH={get S(){return S;},scrollPos,PRODUCTS,SECTIONS,FLAVORS,RECIPES,DEFAULT_RECIPES,EXPLOSION_PRODUCTS,partTotal,invTotal,difOf,fmt,defaultCfg,sheetText,show,renderCount,renderSheet,renderHistory,renderConfig,flavorTotal,flavorPartTotal,flavorCellValue,tortillaPerBox,boxesPartTotal,partHasFlavors,bagTypesOf,boxesFlavorPart,partialFlavorPart,partialsOfTypePart,vaciasPart,vaciasTotal,printSheetHtml,renderPrintSheet,exportCfgText,importCfg,shareCfg,cleanCfg,cleanRecipes,recipesOf,explosionTotals,explosionOf,explosionBreakdown,sectionStops,nearestStop,updateThumb,maxScroll,b64encode,b64decode,compatCfg,compatDraftCanelo,maybeShowWelcome,saveWelcome,skipWelcome,prefsMissing,normText,applyCfgSearch,hasCapPrintSheet,printSheetNative,FONT_SIZES,applyFontSize,updateCountHeadTop,editHist,draftHasData,histExportPayload,cleanHistRecord,importHistData,exportHist,exportHistOne,importHistFile,histFileName,migrateCaneloRecord};
 </script>
 </body>
 </html>
