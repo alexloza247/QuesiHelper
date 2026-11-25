@@ -1,1 +1,17 @@
-{"dependencies":{"@capacitor/core":"^7.4.0","print-sheet":"file:./plugins/print-sheet"},"description":"Inventario del día de Fanáticos de la Pizza: conteo en dos partes, explosión de insumos y hoja final igual a la de papel.","devDependencies":{"@capacitor/cli":"^7.4.0"},"name":"quesi-helper","private":true,"scripts":{"sync":"cap sync"},"version":"1.0.0"}
+{
+  "dependencies": {
+    "@capacitor/core": "^7.4.0",
+    "print-sheet": "file:./plugins/print-sheet",
+    "backup-download": "file:./plugins/backup-download"
+  },
+  "description": "Inventario del día de Fanáticos de la Pizza: conteo en dos partes, explosión de insumos y hoja final igual a la de papel.",
+  "devDependencies": {
+    "@capacitor/cli": "^7.4.0"
+  },
+  "name": "quesi-helper",
+  "private": true,
+  "scripts": {
+    "sync": "cap sync"
+  },
+  "version": "1.0.0"
+}

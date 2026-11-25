@@ -960,10 +960,10 @@ function load(){
    valores de otras especialidades se suman al total de sueltas (el canelo
    es 1 por caja en todos los casos, así que el total de tortillas no cambia).
    Los borradores viejos sin canelo no se tocan. */
-function compatDraftCanelo(){
-  if(!S.draft||!S.draft.parts) return;
+function migrateCaneloRecord(rec){
+  if(!rec||!rec.parts) return;
   ["1","2"].forEach(part=>{
-    const d=S.draft.parts[part]&&S.draft.parts[part]["tortilla-canelo"];
+    const d=rec.parts[part]&&rec.parts[part]["tortilla-canelo"];
     if(!d||!d.flavors) return;
     const fl=d.flavors;
     let cajas=num(fl["C"]&&fl["C"].cajas);
@@ -976,6 +976,7 @@ function compatDraftCanelo(){
     d.cajas=cajas; d.sueltas=sueltas; delete d.flavors;
   });
 }
+function compatDraftCanelo(){ migrateCaneloRecord(S.draft); }
 /* Normalización de la configuración: rellena campos faltantes con los
    valores por defecto. Se usa igual al cargar y al importar. */
 function compatCfg(){
@@ -1980,10 +1981,129 @@ function copySheet(){
   copyText(sheetText(rec),"Hoja copiada");
 }
 
+/* ============ Importar / exportar inventarios (Historial) ============ */
+/* Exporta todos los inventarios guardados a un archivo JSON para respaldarlos
+   o pasarlos a otro teléfono, y los importa de vuelta. El archivo trae
+   {app:"quesihelper", type:"inventarios", version:1, exportedAt, history:[...]}.
+   En la app (Capacitor) el WebView no descarga enlaces <a download>: el archivo
+   se guarda directo en Descargas/Quesi-Helper con el plugin BackupDownload
+   (el mismo de Control de Finanzas). En el navegador se descarga el archivo. */
+const HIST_EXPORT_FOLDER="Quesi-Helper";
+function histFileName(){
+  return "quesihelper-inventarios-"+isoDate(new Date())+".json";
+}
+function histExportPayload(){
+  return {app:"quesihelper",type:"inventarios",version:1,exportedAt:Date.now(),history:S.history};
+}
+function hasCapBackupDownload(){try{var C=window.Capacitor;return !!(C&&C.Plugins&&C.Plugins.BackupDownload&&C.Plugins.BackupDownload.save)}catch(e){return false}}
+function downloadHistFile(txt,fname){
+  try{
+    var url=null;
+    try{url=URL.createObjectURL(new Blob([txt],{type:"application/json"}));}catch(e){}
+    var a=document.createElement("a");
+    a.href=url||("data:application/json;charset=utf-8,"+encodeURIComponent(txt));
+    a.download=fname;
+    document.body.appendChild(a);a.click();
+    setTimeout(function(){try{URL.revokeObjectURL(url)}catch(e){}a.remove();},200);
+    return true;
+  }catch(e){return false}
+}
+function shareHistFile(txt,fname){
+  try{
+    var file=new File([txt],fname,{type:"application/json"});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      navigator.share({files:[file],title:"Inventarios Quesi-Helper"}).then(function(){toast("Elige dónde guardar tus inventarios")}).catch(function(){});
+      return true;
+    }
+  }catch(e){}
+  if(downloadHistFile(txt,fname)){toast("Inventarios exportados ("+S.history.length+")");return true;}
+  toast("No se pudo exportar");
+  return false;
+}
+function exportHist(){
+  if(!S.history.length){toast("No hay inventarios para exportar");return;}
+  var txt=JSON.stringify(histExportPayload());
+  var fname=histFileName();
+  if(hasCapBackupDownload()){
+    try{
+      var p=window.Capacitor.Plugins.BackupDownload.save({filename:fname,data:txt,folder:HIST_EXPORT_FOLDER});
+      if(p&&p.then){p.then(function(){toast("Inventarios guardados en Descargas/"+HIST_EXPORT_FOLDER+" ("+S.history.length+")")},function(){shareHistFile(txt,fname)});return;}
+    }catch(e){}
+  }
+  shareHistFile(txt,fname);
+}
+/* Limpia un inventario importado: estructura mínima válida (encabezado,
+   conteos por parte, kardex, dev, devmer, sabores) con valores por defecto.
+   Lo que no sea objeto se rechaza (null). */
+function cleanHistRecord(raw){
+  if(!raw||typeof raw!=="object"||Array.isArray(raw)) return null;
+  var r={};
+  var h=(raw.header&&typeof raw.header==="object"&&!Array.isArray(raw.header))?raw.header:{};
+  r.header={sucursal:String(h.sucursal||""),turno:String(h.turno||""),fecha:String(h.fecha||""),hora:String(h.hora||"")};
+  r.parts=(raw.parts&&typeof raw.parts==="object"&&!Array.isArray(raw.parts))?raw.parts:{"1":{},"2":{}};
+  if(!r.parts["1"]||typeof r.parts["1"]!=="object"||Array.isArray(r.parts["1"])) r.parts["1"]={};
+  if(!r.parts["2"]||typeof r.parts["2"]!=="object"||Array.isArray(r.parts["2"])) r.parts["2"]={};
+  r.kardex=(raw.kardex&&typeof raw.kardex==="object"&&!Array.isArray(raw.kardex))?raw.kardex:{};
+  r.flavors=(raw.flavors&&typeof raw.flavors==="object"&&!Array.isArray(raw.flavors))?raw.flavors:{};
+  r.dev=(raw.dev&&typeof raw.dev==="object"&&!Array.isArray(raw.dev))?raw.dev:{};
+  r.devmer=(raw.devmer&&typeof raw.devmer==="object"&&!Array.isArray(raw.devmer))?raw.devmer:{};
+  r.createdAt=num(raw.createdAt)||Date.now();
+  r.savedAt=num(raw.savedAt)||r.createdAt;
+  r.id=(typeof raw.id==="string"&&raw.id)?raw.id:("inv-"+Date.now()+"-"+Math.random().toString(36).slice(2,8));
+  if(raw.explosion&&typeof raw.explosion==="object") r.explosion=raw.explosion;
+  return r;
+}
+/* Importa inventarios desde el contenido ya parseado de un archivo exportado.
+   Acepta el formato de exportación ({history:[...]}) o una lista simple de
+   inventarios. Los que ya están en el historial (mismo id) se omiten; los
+   nuevos se agregan y el historial queda ordenado del más reciente al más
+   viejo. Devuelve {added, skipped} o null si el contenido no es válido. */
+function importHistData(data){
+  var arr=null;
+  if(Array.isArray(data)) arr=data;
+  else if(data&&typeof data==="object"&&Array.isArray(data.history)) arr=data.history;
+  if(!arr) return null;
+  var existing={};
+  S.history.forEach(function(r){existing[r.id]=true;});
+  var added=0,skipped=0;
+  arr.forEach(function(raw){
+    var rec=cleanHistRecord(raw);
+    if(!rec){skipped++;return;}
+    if(existing[rec.id]){skipped++;return;}
+    existing[rec.id]=true;
+    migrateCaneloRecord(rec);
+    S.history.push(rec);
+    added++;
+  });
+  if(added){
+    S.history.sort(function(a,b){return num(b.savedAt||b.createdAt)-num(a.savedAt||a.createdAt);});
+    save();
+  }
+  return {added:added,skipped:skipped};
+}
+function importHistFile(file){
+  if(!file) return;
+  var reader=new FileReader();
+  reader.onload=function(){
+    var res=null;
+    try{res=importHistData(JSON.parse(reader.result));}catch(e){res=null;}
+    if(!res){toast("El archivo no es un respaldo de inventarios válido");return;}
+    if(!res.added){
+      toast(res.skipped?"Esos inventarios ya están en el historial":"No se importó ningún inventario");
+      return;
+    }
+    renderHistory();
+    toast(res.added+" inventario"+(res.added===1?"":"s")+" importado"+(res.added===1?"":"s")+(res.skipped?" · "+res.skipped+" ya existían":""));
+  };
+  reader.onerror=function(){toast("No se pudo leer el archivo");};
+  reader.readAsText(file);
+}
+
 /* ============ Vista Historial ============ */
 function renderHistory(){
   const el=document.getElementById("view-history");
   let h="<h2>Historial</h2>";
+  h+='<div class="card"><div class="row"><button class="btn small secondary" id="btn-export-hist">📤 Exportar inventarios</button><button class="btn small secondary" id="btn-import-hist">📥 Importar inventarios</button></div><p class="muted" style="margin-top:8px">Exporta tus inventarios guardados a un archivo para respaldarlos o pasarlos a otro teléfono. Con Importar los agregas de vuelta.</p><input type="file" id="hist-import-file" accept=".json,application/json" style="display:none"></div>';
   if(!S.history.length){
     h+='<div class="card"><p class="muted">Aún no hay inventarios guardados. Cuando termines un conteo, guárdalo desde la <b>Hoja final</b>.</p></div>';
   }
@@ -1997,6 +2117,14 @@ function renderHistory(){
       +'<button class="btn small ghost" data-del-hist="'+rec.id+'">Borrar</button></div></div>';
   });
   el.innerHTML=h;
+  const be=document.getElementById("btn-export-hist");
+  if(be) be.addEventListener("click",exportHist);
+  const bi=document.getElementById("btn-import-hist");
+  const fi=document.getElementById("hist-import-file");
+  if(bi&&fi){
+    bi.addEventListener("click",()=>fi.click());
+    fi.addEventListener("change",()=>{importHistFile(fi.files&&fi.files[0]);fi.value="";});
+  }
   el.querySelectorAll("[data-view-hist]").forEach(b=>b.addEventListener("click",()=>{
     ui.histId=b.dataset.viewHist; show("sheet");
   }));
@@ -2527,7 +2655,7 @@ document.getElementById("btn-welcome-save").addEventListener("click",saveWelcome
 document.getElementById("btn-welcome-later").addEventListener("click",skipWelcome);
 document.getElementById("welcome").addEventListener("click",e=>{ if(e.target.id==="welcome") skipWelcome(); });
 maybeShowWelcome();
-window.QH={get S(){return S;},scrollPos,PRODUCTS,SECTIONS,FLAVORS,RECIPES,DEFAULT_RECIPES,EXPLOSION_PRODUCTS,partTotal,invTotal,difOf,fmt,defaultCfg,sheetText,show,renderCount,renderSheet,renderHistory,renderConfig,flavorTotal,flavorPartTotal,flavorCellValue,tortillaPerBox,boxesPartTotal,partHasFlavors,bagTypesOf,boxesFlavorPart,partialFlavorPart,partialsOfTypePart,vaciasPart,vaciasTotal,printSheetHtml,renderPrintSheet,exportCfgText,importCfg,shareCfg,cleanCfg,cleanRecipes,recipesOf,explosionTotals,explosionOf,explosionBreakdown,sectionStops,nearestStop,updateThumb,maxScroll,b64encode,b64decode,compatCfg,compatDraftCanelo,maybeShowWelcome,saveWelcome,skipWelcome,prefsMissing,normText,applyCfgSearch,hasCapPrintSheet,printSheetNative,FONT_SIZES,applyFontSize,updateCountHeadTop,editHist,draftHasData};
+window.QH={get S(){return S;},scrollPos,PRODUCTS,SECTIONS,FLAVORS,RECIPES,DEFAULT_RECIPES,EXPLOSION_PRODUCTS,partTotal,invTotal,difOf,fmt,defaultCfg,sheetText,show,renderCount,renderSheet,renderHistory,renderConfig,flavorTotal,flavorPartTotal,flavorCellValue,tortillaPerBox,boxesPartTotal,partHasFlavors,bagTypesOf,boxesFlavorPart,partialFlavorPart,partialsOfTypePart,vaciasPart,vaciasTotal,printSheetHtml,renderPrintSheet,exportCfgText,importCfg,shareCfg,cleanCfg,cleanRecipes,recipesOf,explosionTotals,explosionOf,explosionBreakdown,sectionStops,nearestStop,updateThumb,maxScroll,b64encode,b64decode,compatCfg,compatDraftCanelo,maybeShowWelcome,saveWelcome,skipWelcome,prefsMissing,normText,applyCfgSearch,hasCapPrintSheet,printSheetNative,FONT_SIZES,applyFontSize,updateCountHeadTop,editHist,draftHasData,histExportPayload,cleanHistRecord,importHistData,exportHist,importHistFile,histFileName,migrateCaneloRecord};
 </script>
 </body>
 </html>
