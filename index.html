@@ -1982,15 +1982,16 @@ function copySheet(){
 }
 
 /* ============ Importar / exportar inventarios (Historial) ============ */
-/* Exporta todos los inventarios guardados a un archivo JSON para respaldarlos
-   o pasarlos a otro teléfono, y los importa de vuelta. El archivo trae
+/* Exporta todos los inventarios guardados a un archivo .txt (con el JSON
+   adentro, igual que el respaldo de Control de Finanzas) para respaldarlos
+   o pasarlos a otro teléfono, y los importa de vuelta. El contenido es
    {app:"quesihelper", type:"inventarios", version:1, exportedAt, history:[...]}.
    En la app (Capacitor) el WebView no descarga enlaces <a download>: el archivo
    se guarda directo en Descargas/Quesi-Helper con el plugin BackupDownload
    (el mismo de Control de Finanzas). En el navegador se descarga el archivo. */
 const HIST_EXPORT_FOLDER="Quesi-Helper";
 function histFileName(){
-  return "quesihelper-inventarios-"+isoDate(new Date())+".json";
+  return "quesihelper-inventarios-"+isoDate(new Date())+".txt";
 }
 function histExportPayload(records){
   return {app:"quesihelper",type:"inventarios",version:1,exportedAt:Date.now(),history:records||S.history};
@@ -1999,7 +2000,7 @@ function hasCapBackupDownload(){try{var C=window.Capacitor;return !!(C&&C.Plugin
 function downloadHistFile(txt,fname){
   try{
     var url=null;
-    try{url=URL.createObjectURL(new Blob([txt],{type:"application/json"}));}catch(e){}
+    try{url=URL.createObjectURL(new Blob([txt],{type:"text/plain"}));}catch(e){}
     var a=document.createElement("a");
     a.href=url||("data:application/json;charset=utf-8,"+encodeURIComponent(txt));
     a.download=fname;
@@ -2010,7 +2011,7 @@ function downloadHistFile(txt,fname){
 }
 function shareHistFile(txt,fname,count){
   try{
-    var file=new File([txt],fname,{type:"application/json"});
+    var file=new File([txt],fname,{type:"text/plain"});
     if(navigator.canShare&&navigator.canShare({files:[file]})){
       navigator.share({files:[file],title:"Inventarios Quesi-Helper"}).then(function(){toast("Elige dónde guardar tus inventarios")}).catch(function(){});
       return true;
@@ -2042,7 +2043,7 @@ function exportHistOne(id){
   if(!rec){toast("No se encontró ese inventario");return;}
   var hdr=rec.header||{};
   var fecha=/^\d{4}-\d{2}-\d{2}$/.test(hdr.fecha||"")?hdr.fecha:isoDate(new Date());
-  saveHistFile(JSON.stringify(histExportPayload([rec])),"quesihelper-inventario-"+fecha+".json",1);
+  saveHistFile(JSON.stringify(histExportPayload([rec])),"quesihelper-inventario-"+fecha+".txt",1);
 }
 /* Limpia un inventario importado: estructura mínima válida (encabezado,
    conteos por parte, kardex, dev, devmer, sabores) con valores por defecto.
@@ -2115,7 +2116,7 @@ function importHistFile(file){
 function renderHistory(){
   const el=document.getElementById("view-history");
   let h="<h2>Historial</h2>";
-  h+='<div class="card"><div class="row"><button class="btn small secondary" id="btn-export-hist">📤 Exportar inventarios</button><button class="btn small secondary" id="btn-import-hist">📥 Importar inventarios</button></div><p class="muted" style="margin-top:8px">Exporta tus inventarios guardados a un archivo para respaldarlos o pasarlos a otro teléfono. Con Importar los agregas de vuelta.</p><input type="file" id="hist-import-file" accept=".json,application/json" style="display:none"></div>';
+  h+='<div class="card"><div class="row"><button class="btn small secondary" id="btn-export-hist">📤 Exportar inventarios</button><button class="btn small secondary" id="btn-import-hist">📥 Importar inventarios</button></div><p class="muted" style="margin-top:8px">Exporta tus inventarios guardados a un archivo para respaldarlos o pasarlos a otro teléfono. Con Importar los agregas de vuelta.</p><input type="file" id="hist-import-file" accept=".json,.txt,application/json,text/plain" style="display:none"></div>';
   if(!S.history.length){
     h+='<div class="card"><p class="muted">Aún no hay inventarios guardados. Cuando termines un conteo, guárdalo desde la <b>Hoja final</b>.</p></div>';
   }
