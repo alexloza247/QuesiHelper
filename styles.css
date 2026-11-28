@@ -1,0 +1,171 @@
+/* Quesi-Helper — estilos (extraído de index.html) */
+  *{box-sizing:border-box}
+  /* Tamaño de letra (Configuración): --fs escala solo el texto en
+     pantalla; cada font-size de la vista se multiplica por ella. El PDF
+     (#printSheet) usa tamaños fijos en pt dentro de @media print (una
+     página carta, sin importar el tamaño de letra del teléfono) y no
+     se toca. */
+  :root{--fs:1}
+  html.fs-chico{--fs:.88}
+  html.fs-grande{--fs:1.2}
+  html.fs-muygrande{--fs:1.4}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:#fff7ef;color:#26221f;font-size:calc(15px * var(--fs));line-height:1.4}
+  /* El encabezado (título + pestañas) queda fijo arriba al bajar: un solo
+     contenedor sticky con los dos, para que las pestañas no se escondan
+     detrás del título al deslizar. En impresión no se ve (ver @media print). */
+  #topbar{position:sticky;top:0;z-index:20}
+  header{background:#b91c1c;color:#fff;padding:14px 16px 12px}
+  header h1{margin:0;font-size:calc(20px * var(--fs));line-height:1.2}
+  header p{margin:2px 0 0;font-size:calc(12.5px * var(--fs));opacity:.9}
+  nav{display:flex;gap:6px;padding:8px 10px;background:#7f1d1d}
+  nav button{flex:1;border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;border-radius:8px;padding:9px 4px;font-size:calc(13.5px * var(--fs));cursor:pointer}
+  nav button.on{background:#fff;color:#7f1d1d;font-weight:700}
+  main{max-width:860px;margin:0 auto;padding:14px 12px 120px}
+  h2{font-size:calc(17px * var(--fs));margin:6px 0 10px}
+  h3.sec{background:#e7e5e4;border:1px solid #d6d3d1;padding:6px 10px;margin:18px 0 0;font-size:calc(14px * var(--fs));letter-spacing:.4px;text-transform:uppercase}
+  .card{background:#fff;border:1px solid #e7d9c8;border-radius:10px;padding:12px;margin:10px 0}
+  .muted{color:#78716c;font-size:calc(13px * var(--fs))}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  label.f{display:block;font-size:calc(13px * var(--fs));color:#57534e;margin:10px 0 3px}
+  input[type=text],input[type=number],input[type=date],input[type=time],select{width:100%;padding:10px 9px;font-size:calc(15px * var(--fs));border:1px solid #d6d3d1;border-radius:8px;background:#fff;color:#26221f}
+  input[type=number]{text-align:right}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  button.btn{display:block;width:100%;border:none;border-radius:10px;padding:13px;font-size:calc(16px * var(--fs));font-weight:700;cursor:pointer;margin:12px 0 0}
+  button.primary{background:#b91c1c;color:#fff}
+  button.secondary{background:#e7e5e4;color:#26221f}
+  button.ghost{background:transparent;color:#b91c1c;border:1px solid #b91c1c;padding:9px;font-size:calc(14px * var(--fs))}
+  button.small{width:auto;display:inline-block;padding:7px 12px;font-size:calc(13.5px * var(--fs));margin:0}
+  .prod{background:#fff;border:1px solid #e7d9c8;border-radius:10px;padding:10px 12px;margin:8px 0}
+  .prod-head{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+  .prod-head b{font-size:calc(15px * var(--fs))}
+  .um{color:#78716c;font-size:calc(12.5px * var(--fs))}
+  .tot{font-weight:700;color:#b91c1c;white-space:nowrap}
+  .tot small{color:#78716c;font-weight:400}
+  .fields{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+  .fields label{font-size:calc(12.5px * var(--fs));color:#57534e;display:block}
+  .fields input{margin-top:2px}
+  .hint{font-size:calc(12.5px * var(--fs));color:#b45309;margin-top:6px}
+  /* Devolución / merma por producto (todos los productos): el check marca
+     si el producto tiene devolución; al marcarlo aparece el campo de
+     cantidad, que va a la columna Dev/Mer de la hoja y suma al INV. */
+  .devrow{border-top:1px dashed #e7d9c8;margin-top:10px;padding-top:8px}
+  .devrow label.check{margin:0;font-size:calc(13.5px * var(--fs))}
+  .devrow .devqty{margin-top:8px;font-size:calc(12.5px * var(--fs));color:#57534e;display:block}
+  /* El campo de cantidad va escondido hasta marcar el check: sin esta
+     regla, el display:block de .devqty le gana al atributo hidden y el
+     campo se ve siempre aunque el check no esté marcado. */
+  .devrow .devqty[hidden]{display:none}
+  .devrow .devqty input{margin-top:2px}
+  .flv-grid{margin-top:8px}
+  .flv-row{display:grid;grid-template-columns:minmax(104px,1.3fr) 1fr 1fr 48px;gap:6px;align-items:center;padding:5px 0;border-bottom:1px solid #fafaf9}
+  .flv-name{font-size:calc(12.5px * var(--fs))}
+  .flv-name b{font-size:calc(13px * var(--fs))}
+  .flv-row label{font-size:calc(11.5px * var(--fs));color:#57534e;display:block}
+  .flv-row input{width:100%;padding:7px 5px;font-size:calc(14px * var(--fs));margin-top:1px}
+  .flv-tot{font-weight:700;color:#b91c1c;text-align:right;font-size:calc(13.5px * var(--fs))}
+  .parttabs{display:flex;gap:8px;margin:10px 0}
+  /* Tres botones en una fila (1 · Cuarto frío, 2 · Cocina, 3 · Explosión):
+     fuente y padding un poco menores para que "1 · Cuarto frío" quepa
+     en una línea en el teléfono; si la pantalla es muy angosta el texto
+     puede pasar a dos líneas y los botones quedan de la misma altura. */
+  .parttabs button{flex:1;min-width:0;border:1px solid #b91c1c;background:#fff;color:#b91c1c;border-radius:10px;padding:10px 6px;font-size:calc(14px * var(--fs));line-height:1.2;font-weight:700;cursor:pointer}
+  .parttabs button.on{background:#b91c1c;color:#fff}
+  /* Encabezado de conteo fijo al bajar (solo en Contar): el título, las
+     tres pestañas de parte y la línea de info quedan pegados arriba,
+     debajo de #topbar, mientras se baja por la lista de productos. La
+     altura exacta de #topbar se mide desde JS (variable
+     --count-head-top); el valor de reserva aproxima su altura en el
+     teléfono. Solo existe dentro de la vista de conteo: en Hoja,
+     Historial y Configuración no se ve. */
+  #count-head{position:sticky;top:var(--count-head-top,129px);z-index:15;background:#fff7ef;margin:0 -12px;padding:6px 12px 10px;border-bottom:1px solid #e7d9c8}
+  #count-head h2{margin:0 0 8px}
+  #count-head .parttabs{margin:0 0 6px}
+  #count-head p.muted{margin:0}
+  /* Desglose de la explosión por pizza: cada bloque lleva el tipo, la
+     cantidad de pizzas y sus insumos; el total va aparte. */
+  .expl-brk{border-top:1px solid #e7d9c8;margin-top:8px;padding-top:8px}
+  .expl-brk:first-child{border-top:0;margin-top:0;padding-top:0}
+  /* Navegación rápida, solo en Contar: slider lateral con paradas por
+     sección + dos botones flotantes (arriba/abajo) en la esquina
+     inferior derecha. El slider va centrado en el borde derecho y los
+     botones abajo a la derecha, para que no se solapen al tocarlos. */
+  #quicknav{position:fixed;inset:0;z-index:30;pointer-events:none}
+  #quicknav[hidden]{display:none}
+  #scrollslider{position:absolute;right:2px;top:50%;transform:translateY(-50%);width:14px;height:36vh;background:rgba(38,34,31,.10);border-radius:7px;pointer-events:auto;touch-action:none}
+  #scrollslider .thumb{position:absolute;left:1px;right:1px;top:0;height:48px;background:#b91c1c;border-radius:6px;cursor:grab;touch-action:none}
+  #scrollbtns{position:absolute;right:12px;bottom:12px;display:flex;flex-direction:column;gap:8px;pointer-events:auto}
+  #scrollbtns button{width:44px;height:44px;border-radius:50%;border:1px solid #d6d3d1;background:#fff;color:#b91c1c;font-size:calc(20px * var(--fs));font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.18);cursor:pointer}
+  .sheet{background:#fff;border:1px solid #d6d3d1;padding:12px 10px}
+  .sheet-head{border:2px solid #44403c;padding:8px 10px;margin-bottom:10px}
+  .sheet-head .logo{text-align:right;font-weight:800;font-size:calc(13px * var(--fs));line-height:1.1}
+  .sheet-head table{width:100%;border-collapse:collapse}
+  .sheet-head td{border:1px solid #a8a29e;padding:5px 7px;font-size:calc(13.5px * var(--fs));width:50%}
+  .sheet-head td b{font-size:calc(12px * var(--fs));color:#57534e}
+  table.inv{width:100%;border-collapse:collapse;margin:0 0 4px;font-size:calc(13px * var(--fs))}
+  table.inv th,table.inv td{border:1px solid #a8a29e;padding:4px 5px;text-align:left}
+  table.inv th{background:#f5f5f4;font-size:calc(11.5px * var(--fs));text-transform:uppercase}
+  table.inv th.flv small{display:block;font-size:calc(9.5px * var(--fs));font-weight:400;text-transform:none;line-height:1.2;white-space:normal}
+  table.inv td.num,table.inv th.num{text-align:right}
+  table.inv td.parts{font-size:calc(11.5px * var(--fs));line-height:1.35;white-space:nowrap;text-align:right}
+  table.inv input{width:52px;padding:4px 3px;font-size:calc(13px * var(--fs));text-align:right;border:1px solid #d6d3d1;border-radius:5px}
+  table.inv input.wide{width:64px}
+  textarea{width:100%;padding:10px 9px;font-size:calc(14px * var(--fs));border:1px solid #d6d3d1;border-radius:8px;background:#fff;color:#26221f;font-family:inherit;resize:vertical}
+  .scrollx{overflow-x:auto}
+  .signs{display:flex;gap:18px;margin-top:26px}
+  .signs div{flex:1;border-top:1px solid #44403c;padding-top:4px;font-size:calc(12px * var(--fs));text-align:center;color:#57534e}
+  .note{font-size:calc(12.5px * var(--fs));color:#78716c;margin:8px 0}
+  .hist-item{background:#fff;border:1px solid #e7d9c8;border-radius:10px;padding:12px;margin:10px 0}
+  .hist-item b{font-size:calc(15px * var(--fs))}
+  .cfg-prod{background:#fff;border:1px solid #e7d9c8;border-radius:10px;padding:10px 12px;margin:8px 0}
+  .cfg-prod .row{justify-content:space-between}
+  .check{display:flex;gap:8px;align-items:center;margin:8px 0;font-size:calc(14px * var(--fs))}
+  .check input{width:20px;height:20px;accent-color:#b91c1c}
+  #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#26221f;color:#fff;padding:10px 16px;border-radius:20px;font-size:calc(14px * var(--fs));opacity:0;pointer-events:none;transition:opacity .25s;z-index:50;max-width:92vw;text-align:center}
+  #toast.show{opacity:1}
+  /* Bienvenida la primera vez: pide la sucursal y el turno una sola vez
+     al abrir la app. El fondo oscurece lo demás, pero no bloquea: con
+     "Más tarde" se cierra y ya no vuelve a salir. */
+  #welcome{position:fixed;inset:0;background:rgba(38,34,31,.55);z-index:60;display:flex;align-items:center;justify-content:center;padding:16px}
+  #welcome[hidden]{display:none}
+  .welcome-card{background:#fff7ef;border-radius:14px;padding:18px;max-width:420px;width:100%;box-shadow:0 8px 30px rgba(0,0,0,.3)}
+  .welcome-card h2{margin:0 0 6px}
+  .pill{display:inline-block;background:#fef3c7;color:#92400e;border-radius:20px;padding:2px 9px;font-size:calc(12px * var(--fs));font-weight:700}
+  /* Vista de impresión: solo existe para imprimir/PDF, nunca se ve en pantalla */
+  #printSheet{display:none}
+  @media print{
+    @page{size:letter portrait;margin:5mm}
+    html,body{background:#fff!important;color:#000;font-size:10pt!important;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+    header,nav,main,#toast,#welcome{display:none!important}
+    #topbar,#quicknav{display:none!important}
+    #printSheet{display:block!important;font-family:Arial,Helvetica,sans-serif;color:#000;font-size:9.8pt;line-height:1.2}
+    #printSheet .psheet{border:2px solid #000;padding:4.7pt 6.8pt}
+    #printSheet tr{page-break-inside:avoid}
+    #printSheet table.phead{width:100%;border-collapse:collapse;margin-bottom:2.3pt}
+    #printSheet table.phead td{border:1px solid #000;padding:3pt 6pt;font-size:9.8pt;line-height:1.2;vertical-align:middle}
+    #printSheet table.phead td b{font-size:9.4pt}
+    #printSheet table.phead td.plogo{text-align:center;width:24%;vertical-align:middle}
+    #printSheet .pupd{text-align:right;font-size:7.7pt}
+    #printSheet table.ptable{width:100%;border-collapse:collapse;margin:0 0 2.3pt;table-layout:fixed}
+    #printSheet table.ptable th,#printSheet table.ptable td{border:1px solid #000;padding:1.2pt 3.4pt;font-size:8.1pt;line-height:1.12}
+    #printSheet table.ptable th{text-align:center;font-weight:700}
+    /* Encabezado Dev/Mer (4ª casilla de encabezado en INGREDIENTES y en las
+       tablas pareadas): permitir que "Dev/Mer" se parta en dos líneas
+       ("Dev/" sobre "Mer") para que quepa en su casilla sin salirse. */
+    #printSheet table.ptable th:nth-child(4){overflow-wrap:anywhere;font-size:7.7pt}
+    /* Casilla de parciales en las tablas pareadas: una sola columna donde
+       se guardan los datos de cuarto frío (izquierda) y cocina (derecha). */
+    #printSheet table.ptable td.pp{padding:2pt 0.6pt;font-size:6.4pt}
+    #printSheet table.ptable td.pp .ppf{display:flex;justify-content:space-between}
+    #printSheet table.ptable td.pn{text-align:left}
+    #printSheet table.ptable td.um{text-align:center;font-size:7.7pt}
+    #printSheet table.ptable td.num{text-align:right;white-space:nowrap}
+    #printSheet table.ptable tr.band th{background:#d9d9d9;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+    #printSheet table.ppair{width:100%;border-collapse:collapse;margin:0 0 2.3pt;table-layout:fixed}
+    #printSheet table.ppair>tbody>tr>td{border:none;padding:0 1.7pt;vertical-align:top}
+    #printSheet table.ppair>tbody>tr>td:first-child{padding-left:0}
+    #printSheet table.ppair>tbody>tr>td:last-child{padding-right:0}
+    #printSheet table.psigns{width:100%;border-collapse:collapse;margin-top:20mm}
+    #printSheet table.psigns td{border:none;text-align:center;font-size:8.5pt;padding:0 10pt}
+    #printSheet table.psigns .ln{border-top:1px solid #000}
+    #printSheet table.psigns .lb{padding-top:1.7pt}
+  }

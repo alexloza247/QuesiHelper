@@ -1,0 +1,2456 @@
+/* Quesi-Helper — lógica de la app (extraído de index.html) */
+"use strict";
+/* ============ Datos de la hojita (Actualizado Junio 2025 Op) ============ */
+const SECTIONS=["CAJAS","TORTILLAS","INGREDIENTES","SALSAS","ADEREZOS","REFRESCOS","DESECHABLES"];
+const PRODUCTS=[
+ {id:"caja-familiar-qp",sec:"CAJAS",name:"Caja familiar QP",um:"Pieza"},
+ {id:"caja-chica",sec:"CAJAS",name:"Caja Chica",um:"Pieza"},
+ {id:"tortilla-familiar",sec:"TORTILLAS",name:"Tortilla Familiar",um:"Pieza"},
+ {id:"tortilla-chica",sec:"TORTILLAS",name:"Tortilla Chica",um:"Pieza"},
+ {id:"tortilla-canelo",sec:"TORTILLAS",name:"Tortilla Canelo",um:"Pieza"},
+ {id:"tortilla-sarten",sec:"TORTILLAS",name:"Tortilla Sartén",um:"Pieza"},
+ {id:"adobada-cocida",sec:"INGREDIENTES",name:"Adobada cocida",um:"KG"},
+ {id:"boneless",sec:"INGREDIENTES",name:"Boneless Porción",um:"Porción"},
+ {id:"cajeta",sec:"INGREDIENTES",name:"Cajeta",um:"KG"},
+ {id:"cebolla-morada",sec:"INGREDIENTES",name:"Cebolla morada",um:"KG"},
+ {id:"chorizo-cocido",sec:"INGREDIENTES",name:"Chorizo cocido",um:"KG"},
+ {id:"glaseado",sec:"INGREDIENTES",name:"Glaseado",um:"KG"},
+ {id:"goma-pasta",sec:"INGREDIENTES",name:"Goma para pasta",um:"KG"},
+ {id:"jalapeno",sec:"INGREDIENTES",name:"Jalapeño en salmuera",um:"KG"},
+ {id:"jamon",sec:"INGREDIENTES",name:"Jamón",um:"KG"},
+ {id:"mantequilla",sec:"INGREDIENTES",name:"Mantequilla preparada",um:"KG"},
+ {id:"pasta-pizza",sec:"INGREDIENTES",name:"Pasta p/ Pizza",um:"KG"},
+ {id:"pepperoni",sec:"INGREDIENTES",name:"Pepperoni",um:"KG"},
+ {id:"pina",sec:"INGREDIENTES",name:"Piña",um:"KG"},
+ {id:"queso",sec:"INGREDIENTES",name:"Queso",um:"KG"},
+ {id:"queso-crema",sec:"INGREDIENTES",name:"Queso Crema",um:"KG"},
+ {id:"salchicha-italiana",sec:"INGREDIENTES",name:"Salchicha italiana",um:"KG"},
+ {id:"salchicha-polaca",sec:"INGREDIENTES",name:"Salchicha polaca",um:"KG"},
+ {id:"tocino",sec:"INGREDIENTES",name:"Tocino cocido",um:"KG"},
+ {id:"salsa-habanera-sobre",sec:"SALSAS",name:"Salsa Habanera sobre",um:"Pieza"},
+ {id:"salsa-tradicional-sobre",sec:"SALSAS",name:"Salsa tradicional sobre",um:"Pieza"},
+ {id:"salsa-catsup-botella",sec:"SALSAS",name:"Salsa catsup botella",um:"Pieza"},
+ {id:"salsa-habanera-botella",sec:"SALSAS",name:"Salsa Habanera botella",um:"Pieza"},
+ {id:"salsa-tradicional-botella",sec:"SALSAS",name:"Salsa tradicional botella",um:"Pieza"},
+ {id:"aderezo-ranch",sec:"ADEREZOS",name:"Aderezo Ranch",um:"KG"},
+ {id:"aderezo-chipotle",sec:"ADEREZOS",name:"Aderezo chipotle",um:"KG"},
+ {id:"salsa-mango-habanero",sec:"ADEREZOS",name:"Salsa mango habanero",um:"KG"},
+ {id:"salsa-buffalo",sec:"ADEREZOS",name:"Salsa Buffalo",um:"KG"},
+ {id:"salsa-bbq",sec:"ADEREZOS",name:"Salsa BB,Q",um:"KG"},
+ {id:"pepsi-400",sec:"REFRESCOS",name:"Pepsi 400 ml",um:"Pieza"},
+ {id:"pepsi-600",sec:"REFRESCOS",name:"Pepsi 600 ml",um:"Pieza"},
+ {id:"sevenup-600",sec:"REFRESCOS",name:"7 Up 600 ml",um:"Pieza"},
+ {id:"manzana-600",sec:"REFRESCOS",name:"Manzana Sol 600 ml",um:"Pieza"},
+ {id:"lipton-600",sec:"REFRESCOS",name:"Lipton Te 600 ml",um:"Pieza"},
+ {id:"epura-jugo-330",sec:"REFRESCOS",name:"Epura Jugo 330 ml",um:"Pieza"},
+ {id:"epura-agua-1l",sec:"REFRESCOS",name:"Epura Agua 1 litro",um:"Pieza"},
+ {id:"pepsi-2l",sec:"REFRESCOS",name:"Pepsi 2 lts",um:"Pieza"},
+ {id:"sevenup-2l",sec:"REFRESCOS",name:"7 Up 2 lts",um:"Pieza"},
+ {id:"manzana-2l",sec:"REFRESCOS",name:"Manzana Sol 2 lts",um:"Pieza"},
+ {id:"domo-negro",sec:"DESECHABLES",name:"Domo negro c/ tapa",um:"PZA"},
+ {id:"tenedor",sec:"DESECHABLES",name:"Tenedor desechable",um:"PZA"},
+ {id:"contenedor-2oz",sec:"DESECHABLES",name:"Contenedor 2 oz sufle",um:"PZA"},
+ {id:"tapa-contenedor-2oz",sec:"DESECHABLES",name:"Tapa contenedor 2 oz",um:"PZA"},
+ {id:"vaso-animado",sec:"DESECHABLES",name:"Vaso animado ICEE",um:"PZA"},
+ {id:"vaso-regular",sec:"DESECHABLES",name:"Vaso regular ICEE",um:"PZA"},
+ {id:"popote",sec:"DESECHABLES",name:"Popote",um:"PZA"},
+ {id:"tapa-domo",sec:"DESECHABLES",name:"Tapa domo Pet",um:"PZA"}
+];
+const FLAVORS=[
+ {code:"C",name:"Sin quesear"},
+ {code:"Q",name:"Queso"},
+ {code:"PP",name:"Peperonni"},
+ {code:"H",name:"Hawaiana"},
+ {code:"Sup",name:"Suprema"},
+ {code:"3C",name:"3 carnes"},
+ {code:"P/H",name:"Peperonni/Hawaiana"},
+ {code:"P/S",name:"Peperonni/Suprema"},
+ {code:"P/M",name:"Peperonni/Mexicana"},
+ {code:"Pas",name:"Pastor"},
+ {code:"Jam",name:"Jamón"},
+ {code:"Mex",name:"Mexicana"},
+ {code:"Cub",name:"Cubana"}
+];
+const LS="quesihelper_v1";
+
+/* ============ Explosión ============
+   La explosión calcula los insumos que se usaron para las pizzas que
+   quedaron en el inventario (las tortillas por especialidad de la hoja).
+   Solo 4 combinaciones tienen receta por el momento (queso y peperonni,
+   familiar y chica); las demás especialidades — hawaiana, suprema, 3
+   carnes, etc. — y sartén, canelo y sin quesear NO tienen receta y NO
+   aportan nada. De cada receta solo cuentan queso, pasta y pepperoni
+   (la caja, la goma, las salsas y la tortilla NO se cuentan). Las
+   cantidades son por pizza, en kg, y son editables en Configuración
+   (sub-pestaña Explosión); los valores de Alejandro son el valor por
+   defecto. */
+const RECIPES=[
+ {key:"familiar-queso",tortilla:"tortilla-familiar",code:"Q",label:"Queso Familiar",fields:["pasta","queso"]},
+ {key:"familiar-pepperoni",tortilla:"tortilla-familiar",code:"PP",label:"Peperonni Familiar",fields:["pasta","pepperoni","queso"]},
+ {key:"chica-queso",tortilla:"tortilla-chica",code:"Q",label:"Queso Chica",fields:["pasta","queso"]},
+ {key:"chica-pepperoni",tortilla:"tortilla-chica",code:"PP",label:"Peperonni Chica",fields:["pasta","pepperoni","queso"]}
+];
+const RECIPE_FIELDS={pasta:"Pasta p/ Pizza",pepperoni:"Pepperoni",queso:"Queso"};
+const DEFAULT_RECIPES={
+ "familiar-queso":{pasta:0.115,queso:0.2},
+ "familiar-pepperoni":{pasta:0.115,pepperoni:0.057,queso:0.2},
+ "chica-queso":{pasta:0.045,queso:0.07},
+ "chica-pepperoni":{pasta:0.045,pepperoni:0.0228,queso:0.07}
+};
+/* Insumo de la explosión que va en el tercer tercio de cada fila de
+   Ingredientes (solo estos tres; los demás dejan el tercer tercio vacío). */
+const EXPLOSION_PRODUCTS={queso:"queso","pasta-pizza":"pasta",pepperoni:"pepperoni"};
+
+/* ============ Configuración por defecto ============
+   Los valores iniciales son la configuración real de Alejandro
+   (actualizada 2026-11-16 con lo que exportó desde el APK: tipos de
+   bolsa de los tres aderezos):
+   al abrir la app por primera vez ya vienen sus grupos, cantidades
+   por paquete (las dos de tortillas), tipos de bolsa, envases y
+   recipientes. Todo se puede cambiar en Configuración, y
+   "Restablecer valores iniciales" vuelve a estos valores. */
+const TORTILLA_PER_BOX_PLAIN={"tortilla-familiar":3,"tortilla-chica":2,"tortilla-canelo":1,"tortilla-sarten":1};
+const TORTILLA_PER_BOX_ESP={"tortilla-familiar":2,"tortilla-chica":2,"tortilla-canelo":1,"tortilla-sarten":1};
+const DEFAULT_CFG={
+  "caja-familiar-qp": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": "3",
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "caja-chica": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "tortilla-familiar": {
+    "group": "contable",
+    "inPackage": true,
+    "qtyPerPackage": 3,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null,
+    "qtyPerPackageEsp": 2
+  },
+  "tortilla-chica": {
+    "group": "contable",
+    "inPackage": true,
+    "qtyPerPackage": 2,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null,
+    "qtyPerPackageEsp": 2
+  },
+  "tortilla-canelo": {
+    "group": "contable",
+    "inPackage": true,
+    "qtyPerPackage": 1,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "tortilla-sarten": {
+    "group": "contable",
+    "inPackage": true,
+    "qtyPerPackage": 1,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null,
+    "qtyPerPackageEsp": 1
+  },
+  "adobada-cocida": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": "0.400",
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": 0,
+    "bagTypes": [
+      {
+        "name": "",
+        "size": 0.4
+      }
+    ]
+  },
+  "boneless": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "qtyPerPackageEsp": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "cajeta": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": "1",
+    "envUnit": "kg",
+    "useTare": true,
+    "tareWeight": "0.06",
+    "bagTypes": [
+      {
+        "name": "",
+        "size": 1
+      }
+    ]
+  },
+  "cebolla-morada": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": "0",
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null,
+    "bagTypes": []
+  },
+  "chorizo-cocido": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": "0.500",
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null,
+    "bagTypes": [
+      {
+        "name": "",
+        "size": 0.5
+      }
+    ]
+  },
+  "glaseado": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": "0.500",
+    "envUnit": "kg",
+    "useTare": true,
+    "tareWeight": "0.06",
+    "bagTypes": [
+      {
+        "name": "",
+        "size": 0.5
+      }
+    ]
+  },
+  "goma-pasta": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": "0",
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null,
+    "bagTypes": []
+  },
+  "jalapeno": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": "1.75",
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null,
+    "bagTypes": [
+      {
+        "name": "",
+        "size": 1.75
+      }
+    ]
+  },
+  "jamon": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": "0.8",
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null,
+    "bagTypes": [
+      {
+        "name": "",
+        "size": 0.8
+      }
+    ]
+  },
+  "mantequilla": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": ".5",
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null,
+    "bagTypes": [
+      {
+        "name": "",
+        "size": 0.5
+      }
+    ]
+  },
+  "pasta-pizza": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": "3",
+    "envUnit": "kg",
+    "useTare": true,
+    "tareWeight": "0.54",
+    "bagTypes": [
+      {
+        "name": "",
+        "size": 3
+      }
+    ]
+  },
+  "pepperoni": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": "5.67",
+    "envUnit": "kg",
+    "useTare": true,
+    "tareWeight": "0.42",
+    "bagTypes": [
+      {
+        "name": "",
+        "size": 5.67
+      }
+    ]
+  },
+  "pina": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": "1.5",
+    "envUnit": "kg",
+    "useTare": true,
+    "tareWeight": "0.34",
+    "bagTypes": [
+      {
+        "name": "",
+        "size": 1.5
+      }
+    ]
+  },
+  "queso": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": true,
+    "tareWeight": ".90",
+    "bagTypes": [
+      {
+        "name": "Genérico ",
+        "size": "4.5"
+      },
+      {
+        "name": "Normal",
+        "size": "2.26"
+      }
+    ]
+  },
+  "queso-crema": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": true,
+    "tareWeight": ".025",
+    "bagTypes": [
+      {
+        "name": "",
+        "size": ".25"
+      }
+    ]
+  },
+  "salchicha-italiana": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null,
+    "bagTypes": [
+      {
+        "name": "",
+        "size": ".5"
+      }
+    ]
+  },
+  "salchicha-polaca": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null,
+    "bagTypes": [
+      {
+        "name": "",
+        "size": ".3"
+      }
+    ]
+  },
+  "tocino": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null,
+    "bagTypes": [
+      {
+        "name": "",
+        "size": ".6"
+      }
+    ]
+  },
+  "salsa-habanera-sobre": {
+    "group": "contable",
+    "inPackage": true,
+    "qtyPerPackage": 500,
+    "weighBag": true,
+    "weightPerPiece": 0.009,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "salsa-tradicional-sobre": {
+    "group": "contable",
+    "inPackage": true,
+    "qtyPerPackage": 500,
+    "weighBag": true,
+    "weightPerPiece": 0.009,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "salsa-catsup-botella": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "salsa-habanera-botella": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "salsa-tradicional-botella": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "aderezo-ranch": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": true,
+    "tareWeight": ".16",
+    "bagTypes": []
+  },
+  "aderezo-chipotle": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": true,
+    "tareWeight": ".16",
+    "bagTypes": []
+  },
+  "salsa-mango-habanero": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": true,
+    "tareWeight": "0.065",
+    "bagTypes": [
+      {
+        "name": "",
+        "size": ".57"
+      }
+    ]
+  },
+  "salsa-buffalo": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": true,
+    "tareWeight": "0.055",
+    "bagTypes": [
+      {
+        "name": "",
+        "size": ".414"
+      }
+    ]
+  },
+  "salsa-bbq": {
+    "group": "nocontable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": true,
+    "tareWeight": "0.055",
+    "bagTypes": [
+      {
+        "name": "",
+        "size": ".414"
+      }
+    ]
+  },
+  "pepsi-400": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "pepsi-600": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "sevenup-600": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "manzana-600": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "lipton-600": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "epura-jugo-330": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "epura-agua-1l": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "pepsi-2l": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "sevenup-2l": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "manzana-2l": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "domo-negro": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "tenedor": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "contenedor-2oz": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "tapa-contenedor-2oz": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "vaso-animado": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "vaso-regular": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "popote": {
+    "group": "contable",
+    "inPackage": false,
+    "qtyPerPackage": null,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  },
+  "tapa-domo": {
+    "group": "contable",
+    "inPackage": true,
+    "qtyPerPackage": 1,
+    "envSize": null,
+    "envUnit": "kg",
+    "useTare": false,
+    "tareWeight": null
+  }
+};
+function defaultCfg(){
+  // Copia profunda: cada llamada devuelve un objeto nuevo, para que
+  // cambiar la configuración nunca corrompa los valores iniciales.
+  const c=JSON.parse(JSON.stringify(DEFAULT_CFG));
+  // Las recetas de la explosión van dentro de la configuración (así viajan
+  // en el texto de compartir y se importan con ella).
+  c.recipes=JSON.parse(JSON.stringify(DEFAULT_RECIPES));
+  return c;
+}
+/* ============ Estado ============ */
+/* prefs: sucursal y turno que se configuran una vez en Configuración y ya
+   vienen llenos en cada inventario nuevo (solo se confirman), más el
+   tamaño de letra (preferencia solo de pantalla, por dispositivo). No son
+   parte de la configuración de productos: no se comparten con el texto
+   QUESIHELPER-CONFIG:. */
+let S={cfg:defaultCfg(),history:[],draft:null,prefs:{sucursal:"",turno:"",welcomeAsked:false,fontSize:"normal"}};
+let ui={view:"count",part:1,histId:null,cfgTab:"inventario",cfgSearch:""};
+function load(){
+  try{
+    const raw=localStorage.getItem(LS);
+    if(raw){
+      const d=JSON.parse(raw);
+      if(d&&typeof d==="object"){
+        if(d.cfg) S.cfg=Object.assign(defaultCfg(),d.cfg);
+        if(Array.isArray(d.history)) S.history=d.history;
+        if(d.draft) S.draft=d.draft;
+        if(d.prefs){ S.prefs.sucursal=d.prefs.sucursal||""; S.prefs.turno=d.prefs.turno||""; S.prefs.welcomeAsked=!!d.prefs.welcomeAsked; const fs=["chico","normal","grande","muygrande"]; S.prefs.fontSize=fs.includes(d.prefs.fontSize)?d.prefs.fontSize:"normal"; }
+      }
+    }
+  }catch(e){}
+  compatCfg();
+  compatDraftCanelo();
+}
+/* Migración del borrador del canelo a la forma simple (sin especialidades):
+   las cajas y sueltas de la columna C pasan a cajas y sueltas simples; los
+   valores de otras especialidades se suman al total de sueltas (el canelo
+   es 1 por caja en todos los casos, así que el total de tortillas no cambia).
+   Los borradores viejos sin canelo no se tocan. */
+function migrateCaneloRecord(rec){
+  if(!rec||!rec.parts) return;
+  ["1","2"].forEach(part=>{
+    const d=rec.parts[part]&&rec.parts[part]["tortilla-canelo"];
+    if(!d||!d.flavors) return;
+    const fl=d.flavors;
+    let cajas=num(fl["C"]&&fl["C"].cajas);
+    let sueltas=num(fl["C"]&&fl["C"].sueltas);
+    FLAVORS.forEach(f=>{
+      if(f.code==="C") return;
+      const x=fl[f.code]||{};
+      sueltas+=num(x.cajas)*1+num(x.sueltas); // canelo: 1 por caja siempre
+    });
+    d.cajas=cajas; d.sueltas=sueltas; delete d.flavors;
+  });
+}
+function compatDraftCanelo(){ migrateCaneloRecord(S.draft); }
+/* Normalización de la configuración: rellena campos faltantes con los
+   valores por defecto. Se usa igual al cargar y al importar. */
+function compatCfg(){
+  // Compatibilidad: configs guardadas en v1 no tienen qtyPerPackageEsp
+  // (el canelo no la lleva: es un postre sin especialidades, una sola
+  // cantidad por caja).
+  PRODUCTS.forEach(p=>{
+    if(p.sec==="TORTILLAS"&&p.id!=="tortilla-canelo"&&S.cfg[p.id]&&S.cfg[p.id].inPackage&&S.cfg[p.id].qtyPerPackageEsp==null) S.cfg[p.id].qtyPerPackageEsp=TORTILLA_PER_BOX_ESP[p.id];
+  });
+  // El canelo es un postre sin especialidades ni queso: una sola cantidad
+  // por caja (1). Las configs guardadas viejas que aún traen la cantidad
+  // con especialidad la pierden (era 1, igual que la de sin quesear).
+  if(S.cfg["tortilla-canelo"]) delete S.cfg["tortilla-canelo"].qtyPerPackageEsp;
+  // Compatibilidad: configs de v1 con un solo envase migran a un tipo de bolsa
+  PRODUCTS.forEach(p=>{
+    const c=S.cfg[p.id];
+    if(c&&c.group==="nocontable"&&!Array.isArray(c.bagTypes)){
+      c.bagTypes=num(c.envSize)>0?[{name:"",size:num(c.envSize)}]:[];
+    }
+  });
+  // Corrección 2026-11-15: la Chica sin quesear son 2 por caja, no 3
+  // (Alejandro confirmó que se confundió al validar la matriz; la gerenta
+  // multiplicaba por 2). Las configs guardadas con el default viejo (3)
+  // migran a 2: él nunca puso el 3 a mano a propósito.
+  if(S.cfg["tortilla-chica"]&&num(S.cfg["tortilla-chica"].qtyPerPackage)===3) S.cfg["tortilla-chica"].qtyPerPackage=2;
+  // 2026-11-15: las salsas sobre llegan en caja de 500 sobres y la bolsa
+  // suelta se pesa (peso / 0.009 kg por sobre): no se cuentan pieza por
+  // pieza. Las configs guardadas donde aún están como contables migran a
+  // este método con 500 sobres por caja y 0.009 kg por sobre.
+  ["salsa-habanera-sobre","salsa-tradicional-sobre"].forEach(id=>{
+    const c=S.cfg[id];
+    if(c&&c.group==="contable"&&!c.weighBag){
+      c.inPackage=true; c.qtyPerPackage=500; c.weighBag=true; c.weightPerPiece=0.009;
+    }
+    if(c&&c.weighBag){
+      if(!c.inPackage) c.inPackage=true;
+      if(num(c.weightPerPiece)<=0) c.weightPerPiece=0.009;
+    }
+  });
+  // 2026-11-15: recetas de la explosión. Las configs guardadas viejas no
+  // las traen: se ponen los valores por defecto. Las que las traen
+  // incompletas o con valores inválidos se rellenan con el default.
+  if(!S.cfg.recipes||typeof S.cfg.recipes!=="object") S.cfg.recipes=JSON.parse(JSON.stringify(DEFAULT_RECIPES));
+  RECIPES.forEach(def=>{
+    const base=DEFAULT_RECIPES[def.key];
+    let q=S.cfg.recipes[def.key];
+    if(!q||typeof q!=="object") q=S.cfg.recipes[def.key]={};
+    def.fields.forEach(f=>{
+      const v=q[f];
+      q[f]=(v!=null&&v!==""&&isFinite(num(v))&&num(v)>=0)?num(v):base[f];
+    });
+  });
+}
+function save(){ try{localStorage.setItem(LS,JSON.stringify(S));}catch(e){} }
+/* Tamaño de letra (Configuración): Chico ~88%, Normal 100%, Grande 120%,
+   Muy grande 140%. Es preferencia solo de pantalla y por dispositivo: se
+   guarda en S.prefs (como la sucursal y el turno) y NO viaja en el texto
+   QUESIHELPER-CONFIG:, así que compartir o importar una configuración
+   nunca cambia el tamaño de letra de nadie. El PDF no se toca (sus
+   tamaños son fijos dentro de @media print). Al cambiarlo se vuelve a
+   medir la altura del encabezado, porque #count-head va pegado debajo
+   de #topbar y su posición depende de esa altura. */
+const FONT_SIZES={chico:"Chico",normal:"Normal",grande:"Grande",muygrande:"Muy grande"};
+function applyFontSize(){
+  const fs=FONT_SIZES[S.prefs.fontSize]?S.prefs.fontSize:"normal";
+  const de=document.documentElement;
+  de.classList.toggle("fs-chico",fs==="chico");
+  de.classList.toggle("fs-grande",fs==="grande");
+  de.classList.toggle("fs-muygrande",fs==="muygrande");
+  updateCountHeadTop();
+}
+function num(v){const n=parseFloat(v);return isNaN(n)?0:n;}
+function fmt(n){if(!isFinite(n))n=0;const r=Math.round(n*1000)/1000;return String(r);}
+function isoDate(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+function hhmm(d){return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");}
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove("show"),2600);}
+
+/* En la app (Capacitor) window.print() no hace nada: el botón de imprimir
+   usa el plugin local PrintSheet, que abre el diálogo de impresión del
+   sistema (Guardar como PDF o impresora). En el navegador sigue siendo
+   window.print() como siempre. */
+function hasCapPrintSheet(){try{var C=window.Capacitor;return !!(C&&C.Plugins&&C.Plugins.PrintSheet&&C.Plugins.PrintSheet.print)}catch(e){return false}}
+function printSheetNative(){
+  if(hasCapPrintSheet()){
+    var p=window.Capacitor.Plugins.PrintSheet.print();
+    if(p&&p.catch)p.catch(function(){toast("No se pudo abrir la impresión");});
+  } else {
+    window.print();
+  }
+}
+/* Bienvenida la primera vez: al abrir la app, si la sucursal o el turno
+   todavía no se han guardado, pide los dos en un modal. Se guardan en
+   S.prefs como siempre y prellenan el inventario nuevo. Con "Más tarde"
+   (o tocando fuera de la tarjeta) se cierra y ya no vuelve a salir en las
+   siguientes cargas: se marca welcomeAsked y queda guardado. Guardar
+   también marca welcomeAsked, así la pregunta es una sola vez aunque se
+   deje un campo vacío. */
+function prefsMissing(){ return !S.prefs.sucursal||!S.prefs.turno; }
+function maybeShowWelcome(){
+  if(S.prefs.welcomeAsked||!prefsMissing()) return;
+  document.getElementById("w-sucursal").value=S.prefs.sucursal||"";
+  document.getElementById("w-turno").value=S.prefs.turno||"";
+  document.getElementById("welcome").hidden=false;
+}
+function closeWelcome(){ document.getElementById("welcome").hidden=true; }
+function saveWelcome(){
+  const suc=document.getElementById("w-sucursal").value.trim();
+  const tur=document.getElementById("w-turno").value.trim();
+  if(suc) S.prefs.sucursal=suc;
+  if(tur) S.prefs.turno=tur;
+  S.prefs.welcomeAsked=true; save(); closeWelcome();
+  if(S.prefs.sucursal||S.prefs.turno) toast("Sucursal y turno guardados");
+  renderCount();
+}
+function skipWelcome(){ S.prefs.welcomeAsked=true; save(); closeWelcome(); }
+function newDraft(){
+  const now=new Date();
+  return {header:{sucursal:"",turno:"",fecha:isoDate(now),hora:hhmm(now)},parts:{"1":{},"2":{}},kardex:{},flavors:{},dev:{},devmer:{},createdAt:Date.now()};
+}
+function currentRec(){ return ui.histId? S.history.find(h=>h.id===ui.histId)||null : S.draft; }
+
+/* ============ Cálculos ============ */
+/* Tortillas: cada caja es de una sola especialidad. Sin quesear (C) usa
+   qtyPerPackage; con especialidad usa qtyPerPackageEsp. */
+function tortillaPerBox(pid,code){
+  const cfg=S.cfg[pid]; if(!cfg) return 0;
+  return code==="C"?num(cfg.qtyPerPackage):num(cfg.qtyPerPackageEsp);
+}
+function flavorPartTotal(rec,pid,part,code){
+  if(!rec) return 0;
+  const d=(rec.parts[String(part)]&&rec.parts[String(part)][pid])||{};
+  const fl=(d.flavors&&d.flavors[code])||{};
+  return num(fl.cajas)*tortillaPerBox(pid,code)+num(fl.sueltas);
+}
+function flavorTotal(rec,pid,code){ return flavorPartTotal(rec,pid,1,code)+flavorPartTotal(rec,pid,2,code); }
+/* Valor de una celda de especialidad en la hoja: para el canelo (postre sin
+   especialidades) el total va en la columna C, como en la hoja de la gerenta.
+   Con conteo viejo por especialidades (historial anterior) se respeta el
+   desglose guardado; y en hojas v1 sin conteo por especialidad se muestran
+   los valores manuales guardados. */
+function flavorCellValue(rec,pid,code){
+  const stored=rec.flavors&&rec.flavors[pid]?rec.flavors[pid][code]:undefined;
+  const hasFl=partHasFlavors(rec,pid,1)||partHasFlavors(rec,pid,2);
+  if(pid==="tortilla-canelo"&&!hasFl){
+    const tot=invTotal(rec,pid);
+    if(tot!==0) return code==="C"?tot:0;
+    return stored==null||stored===""?0:stored;
+  }
+  return hasFl?flavorTotal(rec,pid,code):(stored==null||stored===""?0:stored);
+}
+function boxesPartTotal(rec,pid,part){
+  if(!rec) return 0;
+  const d=(rec.parts[String(part)]&&rec.parts[String(part)][pid])||{};
+  const fl=d.flavors||{};
+  return FLAVORS.reduce((a,f)=>a+num(fl[f.code]&&fl[f.code].cajas),0);
+}
+function partHasFlavors(rec,pid,part){
+  if(!rec) return false;
+  const d=rec.parts&&rec.parts[String(part)]&&rec.parts[String(part)][pid];
+  if(!d||!d.flavors) return false;
+  return FLAVORS.some(f=>{const x=d.flavors[f.code];return x&&(num(x.cajas)!==0||num(x.sueltas)!==0);});
+}
+/* Cajas que hay de un tipo de tortilla en una parte: suma de las cajas por
+   especialidad + 1 por cada celda (especialidad) con sueltas > 0, porque la
+   caja parcial que guarda esas sueltas también es una caja. */
+function boxesOfTypePart(rec,pid,part){
+  if(!rec) return 0;
+  const d=(rec.parts[String(part)]&&rec.parts[String(part)][pid])||{};
+  if(partHasFlavors(rec,pid,part)){
+    const fl=d.flavors||{};
+    return FLAVORS.reduce((a,f)=>{
+      const x=fl[f.code]||{};
+      return a+num(x.cajas)+(num(x.sueltas)>0?1:0);
+    },0);
+  }
+  // Compatibilidad con borradores de v1 (conteo general por cajas)
+  return num(d.cajas)+(num(d.sueltas)>0?1:0);
+}
+/* Las cajas se calculan solas de las tortillas, como las cuenta la gerenta:
+   la familiar suma las cajas de Tortilla Familiar y Tortilla Sartén (la
+   sartén se empaca en caja familiar); la chica suma las de Tortilla Chica
+   y Tortilla Canelo (el canelo se empaca en caja chica). A eso se le suman
+   las cajas vacías (cajas sin tortillas) que se piden en el conteo. */
+function cajasFamiliarTotal(rec){
+  return [1,2].reduce((a,part)=>a+boxesOfTypePart(rec,"tortilla-familiar",part)+boxesOfTypePart(rec,"tortilla-sarten",part),0)+vaciasTotal(rec,"caja-familiar-qp");
+}
+function cajasChicaTotal(rec){
+  return [1,2].reduce((a,part)=>a+boxesOfTypePart(rec,"tortilla-chica",part)+boxesOfTypePart(rec,"tortilla-canelo",part),0)+vaciasTotal(rec,"caja-chica");
+}
+/* Cajas vacías de un tamaño: cajas sin tortillas que también se cuentan
+   durante el inventario. Se piden en el conteo, por parte (cuarto frío y
+   cocina), y se suman al INV de su caja. */
+function vaciasPart(rec,pid,part){
+  if(!rec) return 0;
+  const d=(rec.parts[String(part)]&&rec.parts[String(part)][pid])||{};
+  return num(d.vacias);
+}
+function vaciasTotal(rec,pid){
+  return vaciasPart(rec,pid,1)+vaciasPart(rec,pid,2);
+}
+/* Cajas enteras de un tipo de tortilla por especialidad en una parte
+   (conteo por especialidades, v1.1). Sin desglose (borrador v1) vale 0. */
+function boxesFlavorPart(rec,pid,part,code){
+  if(!rec) return 0;
+  const d=(rec.parts[String(part)]&&rec.parts[String(part)][pid])||{};
+  if(!partHasFlavors(rec,pid,part)) return 0;
+  const fl=(d.flavors&&d.flavors[code])||{};
+  return num(fl.cajas);
+}
+/* Cajas parciales (con sueltas) de un tipo de tortilla por especialidad
+   en una parte: 1 si esa celda tiene sueltas, 0 si no. */
+function partialFlavorPart(rec,pid,part,code){
+  if(!rec) return 0;
+  const d=(rec.parts[String(part)]&&rec.parts[String(part)][pid])||{};
+  if(!partHasFlavors(rec,pid,part)) return 0;
+  const fl=(d.flavors&&d.flavors[code])||{};
+  return num(fl.sueltas)>0?1:0;
+}
+/* Total de cajas parciales de un tipo de tortilla en una parte (todas las
+   especialidades). */
+function partialsOfTypePart(rec,pid,part){
+  if(!rec) return 0;
+  const d=(rec.parts[String(part)]&&rec.parts[String(part)][pid])||{};
+  if(partHasFlavors(rec,pid,part)){
+    const fl=d.flavors||{};
+    return FLAVORS.reduce((a,f)=>a+((fl[f.code]&&num(fl[f.code].sueltas)>0)?1:0),0);
+  }
+  return num(d.sueltas)>0?1:0;
+}
+/* Tipos de bolsa de un no contable. Config vieja (un solo envase) migra a
+   un tipo de bolsa con ese peso. */
+function bagTypesOf(cfg){
+  if(cfg&&Array.isArray(cfg.bagTypes)) return cfg.bagTypes;
+  if(cfg&&num(cfg.envSize)>0) return [{name:"",size:num(cfg.envSize)}];
+  return [];
+}
+function partTotal(rec,pid,part){
+  if(!rec) return 0;
+  const cfg=S.cfg[pid]; if(!cfg) return 0;
+  const d=(rec.parts[String(part)]&&rec.parts[String(part)][pid])||{};
+  const p=PRODUCTS.find(x=>x.id===pid);
+  // Las cajas se calculan solas de las tortillas (no se cuentan a mano):
+  // los valores manuales viejos de cajas se ignoran para estos totales.
+  // Las cajas vacías sí se piden en el conteo (por parte) y también suman.
+  if(pid==="caja-familiar-qp") return boxesOfTypePart(rec,"tortilla-familiar",part)+boxesOfTypePart(rec,"tortilla-sarten",part)+num(d.vacias);
+  if(pid==="caja-chica") return boxesOfTypePart(rec,"tortilla-chica",part)+boxesOfTypePart(rec,"tortilla-canelo",part)+num(d.vacias);
+  // Tortillas: si el registro trae conteo por especialidades (historial
+  // anterior, incluido el canelo) se suman las especialidades; si no, se
+  // usa el conteo general por cajas (borradores v1 y el canelo simple).
+  if(p&&p.sec==="TORTILLAS"&&cfg.group==="contable"&&cfg.inPackage){
+    if(partHasFlavors(rec,pid,part)) return FLAVORS.reduce((a,f)=>a+flavorPartTotal(rec,pid,part,f.code),0);
+    // Compatibilidad con borradores/historial de v1 (conteo general por cajas)
+    return num(d.cajas)*num(cfg.qtyPerPackage)+num(d.sueltas);
+  }
+  if(cfg.group==="contable"){
+    // Pesar bolsa: cajas completas (cada caja = qtyPerPackage piezas, sin
+    // pesar) + peso de la bolsa suelta / peso por pieza, redondeado a
+    // piezas enteras. Ej. salsas sobre: caja de 500 sobres, sobre de 0.009 kg.
+    if(cfg.inPackage&&cfg.weighBag){
+      const wpp=num(cfg.weightPerPiece)>0?num(cfg.weightPerPiece):0.009;
+      return num(d.cajas)*num(cfg.qtyPerPackage)+Math.round(num(d.pesoBolsa)/wpp);
+    }
+    if(cfg.inPackage) return num(d.cajas)*num(cfg.qtyPerPackage)+num(d.sueltas);
+    return num(d.piezas);
+  }
+  let t=0;
+  // Bolsas: suma por tipo (bolsas_i × peso_i). Compat con borradores viejos:
+  // el campo "envases" valía como bolsas del primer tipo de bolsa.
+  const types=bagTypesOf(cfg);
+  const bolsas=Array.isArray(d.bolsas)?d.bolsas:null;
+  if(bolsas) types.forEach((ty,i)=>{ t+=num(bolsas[i])*num(ty.size); });
+  else if(num(d.envases)>0) t+=num(d.envases)*(types.length?num(types[0].size):num(cfg.envSize));
+  t+=num(d.sueltos);
+  // La báscula con recipiente solo se pesa en cocina (parte 2): en el cuarto
+  // frío el producto está en bolsas cerradas. Un valor viejo de báscula en
+  // cuarto frío se ignora.
+  if(Number(part)===2 && cfg.useTare && d.bascula!=null && d.bascula!=="") t+=Math.max(0,num(d.bascula)-num(cfg.tareWeight));
+  return t;
+}
+/* INV de un producto: cuarto frío + cocina. Para Queso, Pasta p/ Pizza y
+   Pepperoni, la explosión TAMBIÉN suma al INV: las tres partes de la
+   casilla (cuarto frío, cocina y explosión — los tres tercios) suman el
+   INV. Para los demás productos el INV sigue siendo cuarto frío + cocina.
+   La Dev/Mer (devolución o merma, marcada en el conteo o escrita en la
+   hoja) TAMBIÉN suma al INV de ese producto. */
+function invTotal(rec,pid){
+  let t=partTotal(rec,pid,1)+partTotal(rec,pid,2);
+  const exKey=EXPLOSION_PRODUCTS[pid];
+  if(exKey) t+=num(explosionOf(rec)[exKey]);
+  t+=num(rec.devmer&&rec.devmer[pid]);
+  return t;
+}
+function difOf(rec,pid){ return invTotal(rec,pid)-num(rec.kardex?rec.kardex[pid]:0); }
+/* Recetas de la explosión (de Configuración; si faltan o vienen
+   incompletas, los valores por defecto). */
+function recipesOf(){
+  const r=S.cfg.recipes;
+  if(!r||typeof r!=="object") return JSON.parse(JSON.stringify(DEFAULT_RECIPES));
+  const out={};
+  RECIPES.forEach(def=>{
+    const base=DEFAULT_RECIPES[def.key];
+    const q=(r[def.key]&&typeof r[def.key]==="object")?r[def.key]:{};
+    out[def.key]={};
+    def.fields.forEach(f=>{
+      const v=q[f];
+      out[def.key][f]=(v!=null&&v!==""&&isFinite(num(v))&&num(v)>=0)?num(v):base[f];
+    });
+  });
+  return out;
+}
+/* Totales de la explosión para un inventario: por cada combinación con
+   receta, tortillas contadas (suma de las dos partes) × cantidades de la
+   receta, sumado por insumo (queso, pasta, pepperoni), redondeado a 3
+   decimales como el resto de la app. */
+function explosionTotals(rec){
+  const r=recipesOf();
+  let pasta=0,queso=0,pepperoni=0;
+  RECIPES.forEach(def=>{
+    const n=flavorTotal(rec,def.tortilla,def.code);
+    const q=r[def.key]||{};
+    pasta+=n*num(q.pasta); queso+=n*num(q.queso); pepperoni+=n*num(q.pepperoni);
+  });
+  const rd=v=>Math.round(v*1000)/1000;
+  return {pasta:rd(pasta),queso:rd(queso),pepperoni:rd(pepperoni)};
+}
+/* Explosión de un inventario: si ya se confirmó una, se muestran los
+   valores confirmados (quedan guardados con el inventario, borrador e
+   historial); si no, se calculan en vivo de las tortillas contadas. */
+function explosionOf(rec){
+  if(rec&&rec.explosion&&rec.explosion.confirmed){
+    return {pasta:num(rec.explosion.pasta),queso:num(rec.explosion.queso),pepperoni:num(rec.explosion.pepperoni)};
+  }
+  return explosionTotals(rec);
+}
+/* Desglose de la explosión por pizza: un bloque por cada combinación
+   con receta que tenga al menos 1 pizza contada, con sus insumos según
+   la receta (solo los que le corresponden a esa pizza). Los tipos con
+   0 pizzas no salen. Usa los mismos valores que el total (en vivo). */
+function explosionBreakdown(rec){
+  const r=recipesOf();
+  const rd=v=>Math.round(v*1000)/1000;
+  const out=[];
+  RECIPES.forEach(def=>{
+    const n=flavorTotal(rec,def.tortilla,def.code);
+    if(n<=0) return;
+    const q=r[def.key]||{};
+    const vals={};
+    def.fields.forEach(f=>{ vals[f]=rd(n*num(q[f])); });
+    out.push({key:def.key,label:def.label,n:n,fields:def.fields.slice(),vals:vals});
+  });
+  return out;
+}
+function hasData(rec,pid){
+  if(invTotal(rec,pid)!==0) return true;
+  if(num(rec.kardex&&rec.kardex[pid])!==0) return true;
+  const fl=rec.flavors&&rec.flavors[pid]; if(fl&&Object.keys(fl).some(k=>num(fl[k])!==0)) return true;
+  if(num(rec.dev&&rec.dev[pid])!==0) return true;
+  if(num(rec.devmer&&rec.devmer[pid])!==0) return true;
+  return false;
+}
+function countedInPart(rec,part){
+  let n=0;
+  PRODUCTS.forEach(p=>{ if(partTotal(rec,p.id,part)!==0) n++; });
+  return n;
+}
+"use strict";
+/* ============ Navegación ============ */
+/* Posición de scroll por pestaña: al salir de una pestaña se guarda dónde se
+   quedó, y al volver se restaura (no sube hasta arriba). Si una pestaña no
+   tiene posición guardada, empieza arriba como siempre. */
+const scrollPos={};
+function show(view){
+  scrollPos[ui.view]=window.scrollY;
+  ui.view=view;
+  document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("on",b.dataset.view===view));
+  ["count","sheet","history","config"].forEach(v=>{
+    document.getElementById("view-"+v).hidden=(v!==view);
+  });
+  if(view==="count") renderCount();
+  if(view==="sheet") renderSheet();
+  if(view==="history") renderHistory();
+  if(view==="config") renderConfig();
+  /* La navegación rápida (slider + botones flotantes) solo se ve en
+     Contar, en sus tres vistas; en Hoja, Historial y Configuración
+     se esconde. */
+  document.getElementById("quicknav").hidden=(view!=="count");
+  window.scrollTo(0,scrollPos[view]||0);
+  updateThumb();
+}
+document.getElementById("nav").addEventListener("click",e=>{
+  const b=e.target.closest("button[data-view]");
+  if(b) show(b.dataset.view);
+});
+
+/* ============ Navegación rápida en Contar ============
+   Dos botones flotantes en la esquina inferior derecha (↑ arriba,
+   ↓ abajo, con desplazamiento suave) y un slider vertical en el
+   borde derecho con un pulgar arrastrable. El pulgar refleja la
+   posición actual del scroll; al arrastrarlo la página se desplaza
+   en proporción. En las partes 1 y 2 el desplazamiento se detiene
+   (snap) en cada sección de productos (Cajas, Tortillas,
+   Ingredientes, Salsas, Aderezos, Refrescos, Desechables) y la
+   página salta a su encabezado; en la Explosión (parte 3) no hay
+   secciones y el desplazamiento es continuo. Funciona con el dedo
+   (eventos Pointer, con touch-action:none para que el navegador no
+   se quede con el gesto). El slider va centrado en el borde derecho
+   y los botones abajo a la derecha, para que no se solapen. */
+const quicknavEl=document.getElementById("quicknav");
+const sliderEl=document.getElementById("scrollslider");
+const thumbEl=document.getElementById("scroll-thumb");
+function maxScroll(){ return Math.max(0,document.documentElement.scrollHeight-window.innerHeight); }
+function updateThumb(){
+  const ms=maxScroll();
+  const range=Math.max(0,sliderEl.clientHeight-thumbEl.offsetHeight);
+  const ratio=ms>0?window.scrollY/ms:0;
+  thumbEl.style.top=Math.round(ratio*range)+"px";
+}
+/* El encabezado de conteo (#count-head) va pegado justo debajo de
+   #topbar: su altura se mide aquí (la barra cambia con el ancho de la
+   pantalla) y se guarda en la variable --count-head-top. Si no hay
+   encabezado de conteo en pantalla no se hace nada. */
+function updateCountHeadTop(){
+  const ch=document.getElementById("count-head");
+  if(!ch) return;
+  const top=document.getElementById("topbar");
+  document.documentElement.style.setProperty("--count-head-top",(top?top.offsetHeight:0)+"px");
+}
+/* Paradas del slider: el encabezado de cada sección del conteo, con
+   su posición de scroll (descontando los dos encabezados fijos —
+   #topbar y #count-head — para que el título de la sección no quede
+   tapado). */
+function sectionStops(){
+  const top=document.getElementById("topbar");
+  const ch=document.getElementById("count-head");
+  const off=(top?top.offsetHeight:0)+(ch?ch.offsetHeight:0);
+  const ms=maxScroll();
+  return Array.from(document.querySelectorAll("#view-count h3.sec")).map(h=>({
+    name:h.textContent.trim(),
+    y:Math.max(0,Math.min(ms,h.offsetTop-off))
+  }));
+}
+function nearestStop(y){
+  const stops=sectionStops();
+  if(!stops.length) return y;
+  let best=stops[0],bd=Math.abs(y-stops[0].y);
+  stops.forEach(s=>{ const d=Math.abs(y-s.y); if(d<bd){bd=d;best=s;} });
+  return best.y;
+}
+window.addEventListener("scroll",updateThumb,{passive:true});
+window.addEventListener("resize",updateThumb);
+window.addEventListener("resize",updateCountHeadTop);
+document.getElementById("btn-scroll-top").addEventListener("click",()=>window.scrollTo({top:0,behavior:"smooth"}));
+document.getElementById("btn-scroll-bottom").addEventListener("click",()=>window.scrollTo({top:maxScroll(),behavior:"smooth"}));
+let dragStartY=0,dragStartScroll=0,dragging=false;
+thumbEl.addEventListener("pointerdown",e=>{
+  dragging=true; dragStartY=e.clientY; dragStartScroll=window.scrollY;
+  if(e.pointerId!=null&&thumbEl.setPointerCapture){ try{thumbEl.setPointerCapture(e.pointerId);}catch(_){} }
+  e.preventDefault();
+});
+thumbEl.addEventListener("pointermove",e=>{
+  if(!dragging) return;
+  const ms=maxScroll();
+  const range=Math.max(1,sliderEl.clientHeight-thumbEl.offsetHeight);
+  let y=dragStartScroll+(e.clientY-dragStartY)*(ms/range);
+  y=Math.max(0,Math.min(ms,y));
+  if(ui.part!==3) y=nearestStop(y);
+  window.scrollTo(0,y);
+});
+thumbEl.addEventListener("pointerup",()=>{dragging=false;});
+thumbEl.addEventListener("pointercancel",()=>{dragging=false;});
+
+/* ============ Vista Contar ============ */
+/* Devolución / merma por producto (todos los productos, que ahora tienen
+   columna Dev/Mer en la hoja): el check marca si el producto tiene
+   devolución; al marcarlo aparece el campo de cantidad. La cantidad va a
+   rec.devmer[pid] — LA MISMA fuente que el campo manual de Dev/Mer de la
+   hoja — así se puede poner o quitar desde el conteo o desde la hoja y
+   siempre coincide. devOpen recuerda (solo en pantalla) los productos
+   cuyo check se marcó pero aún no tienen cantidad escrita. La DEV de
+   tortillas (manual) y las cajas vacías (DEV de cajas) son mecanismos
+   aparte y siguen como estaban, junto al check. */
+const devOpen=new Set();
+function devRowHtml(pid){
+  const p=PRODUCTS.find(x=>x.id===pid);
+  if(!p) return "";
+  const dm=S.draft.devmer&&S.draft.devmer[pid];
+  const open=num(dm)!==0||devOpen.has(pid);
+  return '<div class="devrow"><label class="check"><input type="checkbox" data-devcheck="'+pid+'"'+(open?" checked":"")+'> ¿Devolución / merma?</label>'
+    +'<label class="devqty"'+(open?"":" hidden")+'>Cantidad devuelta ('+esc(p.um)+')<input type="number" min="0" step="0.001" inputmode="decimal" data-devqty="'+pid+'" value="'+esc(dm==null?"":dm)+'"></label></div>';
+}
+function countInputsHtml(pid,part){
+  const cfg=S.cfg[pid];
+  const d=(S.draft.parts[String(part)]&&S.draft.parts[String(part)][pid])||{};
+  const v=(f)=>esc(d[f]==null?"":d[f]);
+  const p=PRODUCTS.find(x=>x.id===pid);
+  // Las cajas no se cuentan a mano: se calculan solas de las tortillas.
+  // Lo único que se pide aquí son las cajas vacías (cajas sin tortillas)
+  // de ese tamaño, en esta parte; se suman al INV de la caja.
+  if(pid==="caja-familiar-qp"||pid==="caja-chica"){
+    const which=pid==="caja-familiar-qp"?"Tortilla Familiar y Tortilla Sartén":"Tortilla Chica y Tortilla Canelo";
+    const label=pid==="caja-familiar-qp"?"Cajas vacías familiares":"Cajas vacías chicas";
+    return '<div class="fields"><label>'+label+'<input type="number" min="0" step="1" inputmode="numeric" data-pid="'+pid+'" data-field="vacias" data-part="'+part+'" value="'+v("vacias")+'"></label></div>'
+      +'<div class="hint">Se calcula sola de las tortillas ('+which+') de ambas partes, más las cajas vacías. Total: <b data-cajas-tot="'+pid+'">'+fmt(invTotal(S.draft,pid))+'</b> cajas.</div>';
+  }
+  // El canelo es un postre sin especialidades ni queso: solo Cajas +
+  // Sueltas, sin tabla de especialidades (1 por caja). La Sartén sí
+  // sigue con su tabla de especialidades.
+  if(p&&p.sec==="TORTILLAS"&&cfg.group==="contable"&&cfg.inPackage&&pid!=="tortilla-canelo"){
+    let h='<div class="flv-grid">';
+    FLAVORS.forEach(f=>{
+      const fl=(d.flavors&&d.flavors[f.code])||{};
+      const pb=tortillaPerBox(pid,f.code);
+      h+='<div class="flv-row"><span class="flv-name"><b>'+f.code+'</b> '+esc(f.name)+' <span class="um">×'+fmt(pb)+'</span></span>'
+        +'<label>Cajas<input type="number" min="0" step="1" inputmode="numeric" data-pid="'+pid+'" data-flavor="'+f.code+'" data-field="cajas" data-part="'+part+'" value="'+esc(fl.cajas==null?"":fl.cajas)+'"></label>'
+        +'<label>Sueltas<input type="number" min="0" step="1" inputmode="numeric" data-pid="'+pid+'" data-flavor="'+f.code+'" data-field="sueltas" data-part="'+part+'" value="'+esc(fl.sueltas==null?"":fl.sueltas)+'"></label>'
+        +'<span class="flv-tot" data-flv-tot="'+pid+':'+f.code+'">'+fmt(flavorPartTotal(S.draft,pid,part,f.code))+'</span></div>';
+    });
+    h+='</div><div class="hint"><b data-boxes-tot="'+pid+'">'+boxesPartTotal(S.draft,pid,part)+'</b> cajas en esta parte · Sin quesear ×'+fmt(tortillaPerBox(pid,"C"))+' por caja; con especialidad ×'+fmt(tortillaPerBox(pid,"Q"))+' por caja. Cada caja es de una sola especialidad.</div>';
+    return h;
+  }
+  // Pesar bolsa: cajas completas (sin pesar) + peso de la bolsa suelta,
+  // que se divide entre el peso por pieza y se redondea a piezas enteras.
+  if(cfg.group==="contable"&&cfg.inPackage&&cfg.weighBag){
+    const qpp=num(cfg.qtyPerPackage);
+    const wpp=num(cfg.weightPerPiece)>0?num(cfg.weightPerPiece):0.009;
+    return '<div class="fields">'
+      +'<label>Cajas (de '+fmt(qpp)+' sobres)<input type="number" min="0" step="1" inputmode="numeric" data-pid="'+pid+'" data-field="cajas" data-part="'+part+'" value="'+v("cajas")+'"></label>'
+      +'<label>Peso de la bolsa suelta (kg)<input type="number" min="0" step="0.001" inputmode="decimal" data-pid="'+pid+'" data-field="pesoBolsa" data-part="'+part+'" value="'+v("pesoBolsa")+'"></label>'
+      +'</div>'
+      +'<div class="hint">Total: <b data-weigh-tot="'+pid+'">'+fmt(partTotal(S.draft,pid,part))+'</b> sobres = cajas × '+fmt(qpp)+' + peso / '+fmt(wpp)+' kg (redondeado).</div>';
+  }
+  if(cfg.group==="contable"&&cfg.inPackage){
+    const noQty=num(cfg.qtyPerPackage)<=0;
+    return '<div class="fields">'
+      +'<label>Cajas / paquetes'+(noQty?' <span class="hint">(configura la cantidad por paquete)</span>':'')+'<input type="number" min="0" step="1" inputmode="numeric" data-pid="'+pid+'" data-field="cajas" data-part="'+part+'" value="'+v("cajas")+'" '+(noQty?"disabled":"")+'>'+(noQty?"":"")+'</label>'
+      +'<label>Sueltas<input type="number" min="0" step="1" inputmode="numeric" data-pid="'+pid+'" data-field="sueltas" data-part="'+part+'" value="'+v("sueltas")+'"></label>'
+      +'</div>'
+      +'<div class="hint">Total: '+num(cfg.qtyPerPackage)+' por caja × cajas + sueltas.</div>';
+  }
+  if(cfg.group==="contable"){
+    return '<div class="fields"><label>Piezas<input type="number" min="0" step="1" inputmode="numeric" data-pid="'+pid+'" data-field="piezas" data-part="'+part+'" value="'+v("piezas")+'"></label></div>';
+  }
+  const types=bagTypesOf(cfg);
+  const unit=cfg.envUnit||"kg";
+  const hasBags=types.some(t=>num(t.size)>0);
+  let h='<div class="fields">';
+  types.forEach((ty,i)=>{
+    const label=ty.name?esc(ty.name):("de "+fmt(num(ty.size))+" "+unit);
+    const val=Array.isArray(d.bolsas)?(d.bolsas[i]==null?"":d.bolsas[i]):"";
+    h+='<label>Bolsas '+label+'<input type="number" min="0" step="1" inputmode="numeric" data-pid="'+pid+'" data-field="bolsas" data-bag-idx="'+i+'" data-part="'+part+'" value="'+esc(val)+'" '+(num(ty.size)<=0?"disabled":"")+'>'+'</label>';
+  });
+  h+='<label>Kg sueltos (opcional)<input type="number" min="0" step="0.001" inputmode="decimal" data-pid="'+pid+'" data-field="sueltos" data-part="'+part+'" value="'+v("sueltos")+'"></label>';
+  if(cfg.useTare&&Number(part)===2){
+    h+='<label>Peso en báscula (con recipiente)<input type="number" min="0" step="0.001" inputmode="decimal" data-pid="'+pid+'" data-field="bascula" data-part="'+part+'" value="'+v("bascula")+'"></label>';
+  }
+  h+='</div>';
+  let hintTxt="Total: ";
+  if(types.length) hintTxt+=types.map(ty=>{const nm=ty.name?ty.name:("bolsas de "+fmt(num(ty.size))+" "+unit);return nm+" × su peso";}).join(" + ")+" + kg sueltos";
+  else hintTxt+="kg sueltos";
+  if(cfg.useTare){
+    if(Number(part)===2) hintTxt+=' + (báscula − recipiente '+fmt(num(cfg.tareWeight))+' kg)';
+    else hintTxt+=' · La báscula con recipiente se pesa solo en cocina';
+  }
+  h+='<div class="hint">'+hintTxt+'.</div>';
+  if(!hasBags) h+='<div class="hint">Configura los tipos de bolsa en Configuración para poder contar bolsas.</div>';
+  return h;
+}
+function renderCount(){
+  const el=document.getElementById("view-count");
+  if(!S.draft){
+    devOpen.clear();
+    el.innerHTML='<h2>Nuevo inventario del día</h2>'
+      +'<div class="card"><p class="muted">Llena el encabezado y empieza el conteo. Primero el <b>cuarto frío</b> y después la <b>cocina</b> (el refri es de la cocina). En cada parte aparecen todos los productos, por si las moscas.</p>'
+      +'<label class="f">Sucursal</label><input type="text" id="h-sucursal" placeholder="Ej. Lerdo centro" value="'+esc(S.prefs.sucursal)+'">'
+      +'<label class="f">Turno</label><input type="text" id="h-turno" placeholder="Ej. Matutino" value="'+esc(S.prefs.turno)+'">'
+      +((S.prefs.sucursal||S.prefs.turno)?'<p class="note">La sucursal y el turno ya vienen llenos con lo guardado en Configuración. Si hoy te toca otra, cámbialos aquí: solo vale para este inventario.</p>':"")
+      +'<div class="grid2"><div><label class="f">Fecha</label><input type="date" id="h-fecha" value="'+esc(isoDate(new Date()))+'"></div>'
+      +'<div><label class="f">Hora</label><input type="time" id="h-hora" value="'+esc(hhmm(new Date()))+'"></div></div>'
+      +'<button class="btn primary" id="btn-start">Empezar conteo → Cuarto frío</button>'
+      +'<p class="note">Antes de contar, revisa en <b>Configuración</b> que cada insumo tenga su método de conteo (paquetes, pesar bolsa, envases y recipientes).</p></div>';
+    document.getElementById("btn-start").addEventListener("click",()=>{
+      const suc=document.getElementById("h-sucursal").value.trim();
+      const tur=document.getElementById("h-turno").value.trim();
+      /* Sucursal y turno se configuran una vez: si todavía no hay nada
+         guardado (primera vez), lo que se escriba aquí se guarda como valor
+         por defecto para los próximos inventarios. Si ya hay algo guardado,
+         un cambio aquí vale solo para este inventario (no lo sobrescribe). */
+      if(!S.prefs.sucursal&&suc) S.prefs.sucursal=suc;
+      if(!S.prefs.turno&&tur) S.prefs.turno=tur;
+      S.draft=newDraft();
+      S.draft.header.sucursal=suc;
+      S.draft.header.turno=tur;
+      S.draft.header.fecha=document.getElementById("h-fecha").value||isoDate(new Date());
+      S.draft.header.hora=document.getElementById("h-hora").value||hhmm(new Date());
+      ui.part=1; save(); renderCount();
+      toast("Conteo iniciado · Cuarto frío");
+    });
+    updateThumb();
+    return;
+  }
+  const part=ui.part;
+  // Paso 3 del conteo: la Explosión, después de las dos partes.
+  if(part===3){ renderExplosion(); return; }
+  const partName=part===1?"Cuarto frío":"Cocina";
+  const unconfigured=PRODUCTS.filter(p=>S.cfg[p.id].group==="nocontable"&&!bagTypesOf(S.cfg[p.id]).some(t=>num(t.size)>0)).length;
+  let h='<div id="count-head"><h2>Conteo · '+partName+'</h2>'
+    +'<div class="parttabs"><button data-part="1" class="'+(part===1?"on":"")+'">1 · Cuarto frío</button><button data-part="2" class="'+(part===2?"on":"")+'">2 · Cocina</button><button data-part="3" class="'+(part===3?"on":"")+'">3 · Explosión</button></div>'
+    +'<p class="muted">'+esc(S.draft.header.sucursal||"Sin sucursal")+' · '+esc(S.draft.header.turno||"Sin turno")+' · '+esc(S.draft.header.fecha)+' '+esc(S.draft.header.hora)+' · <span id="count-progress"></span></p></div>'
+    +(unconfigured?'<p class="hint">⚠️ '+unconfigured+' insumo(s) sin tamaño de envase — configúralos en Configuración para poder contar bolsas.</p>':"")
+    +'<div id="count-list">';
+  SECTIONS.forEach(sec=>{
+    h+='<h3 class="sec">'+sec+'</h3>';
+    PRODUCTS.filter(p=>p.sec===sec).forEach(p=>{
+      h+='<div class="prod" data-prod="'+p.id+'"><div class="prod-head"><span><b>'+esc(p.name)+'</b> <span class="um">'+esc(p.um)+'</span></span><span class="tot" data-tot="'+p.id+'">'+fmt(partTotal(S.draft,p.id,part))+' <small>'+esc(p.um)+'</small></span></div>'
+        +countInputsHtml(p.id,part)+devRowHtml(p.id)+'</div>';
+    });
+  });
+  h+='</div>';
+  if(part===1) h+='<button class="btn primary" id="btn-next-part">Siguiente → Cocina</button>';
+  else h+='<button class="btn primary" id="btn-to-explosion">Ver explosión →</button>';
+  h+='<button class="btn secondary" id="btn-view-sheet">Ver hoja (con lo que llevo)</button>';
+  h+='<button class="btn ghost" id="btn-discard">Descartar borrador</button>';
+  el.innerHTML=h;
+  updateCountHeadTop();
+  el.querySelectorAll(".parttabs button").forEach(b=>b.addEventListener("click",()=>{ui.part=parseInt(b.dataset.part,10);renderCount();}));
+  const nb=document.getElementById("btn-next-part");
+  if(nb) nb.addEventListener("click",()=>{ui.part=2;save();renderCount();window.scrollTo(0,0);});
+  const te=document.getElementById("btn-to-explosion");
+  if(te) te.addEventListener("click",()=>{ui.part=3;save();renderCount();window.scrollTo(0,0);});
+  document.getElementById("btn-view-sheet").addEventListener("click",()=>{save();show("sheet");});
+  document.getElementById("btn-discard").addEventListener("click",()=>{
+    if(confirm("¿Descartar el borrador de este conteo? Se pierde lo capturado.")){S.draft=null;save();renderCount();}
+  });
+  updateCountProgress();
+  updateThumb();
+}
+function updateCountProgress(){
+  const el=document.getElementById("count-progress");
+  if(!el||!S.draft) return;
+  const part=ui.part;
+  el.textContent="Contados en esta parte: "+countedInPart(S.draft,part)+"/"+PRODUCTS.length;
+  document.querySelectorAll("[data-tot]").forEach(sp=>{
+    const pid=sp.dataset.tot;
+    const p=PRODUCTS.find(x=>x.id===pid);
+    sp.innerHTML=fmt(partTotal(S.draft,pid,part))+" <small>"+esc(p.um)+"</small>";
+  });
+  document.querySelectorAll("[data-flv-tot]").forEach(sp=>{
+    const i=sp.dataset.flvTot.indexOf(":");
+    const pid=sp.dataset.flvTot.slice(0,i), code=sp.dataset.flvTot.slice(i+1);
+    sp.textContent=fmt(flavorPartTotal(S.draft,pid,part,code));
+  });
+  document.querySelectorAll("[data-boxes-tot]").forEach(sp=>{
+    sp.textContent=boxesPartTotal(S.draft,sp.dataset.boxesTot,part);
+  });
+  document.querySelectorAll("[data-cajas-tot]").forEach(sp=>{
+    sp.textContent=fmt(invTotal(S.draft,sp.dataset.cajasTot));
+  });
+  document.querySelectorAll("[data-weigh-tot]").forEach(sp=>{
+    sp.textContent=fmt(partTotal(S.draft,sp.dataset.weighTot,part));
+  });
+}
+
+/* ============ Pantalla Explosión ============
+   Paso 3 del conteo: aparece después de contar las DOS partes (cuarto
+   frío y cocina), como pantalla propia del flujo de conteo. Ya viene
+   prellenada con lo que calcula la app (los insumos de las tortillas
+   contadas), solo para que el usuario lo lea y lo confirme. Al
+   confirmar, los valores quedan guardados con el inventario (borrador
+   e historial) y se muestran en el tercer tercio de la hoja y del PDF.
+   Si se cambia el conteo (o una receta) después de confirmar, la
+   pantalla avisa y al confirmar de nuevo se actualiza. */
+function renderExplosion(){
+  const el=document.getElementById("view-count");
+  const rec=S.draft;
+  const tot=explosionTotals(rec);
+  const brk=explosionBreakdown(rec);
+  const stored=rec.explosion&&rec.explosion.confirmed?rec.explosion:null;
+  const differs=stored&&(Math.abs(num(stored.pasta)-tot.pasta)>0.0005||Math.abs(num(stored.queso)-tot.queso)>0.0005||Math.abs(num(stored.pepperoni)-tot.pepperoni)>0.0005);
+  const qF=flavorTotal(rec,"tortilla-familiar","Q"), ppF=flavorTotal(rec,"tortilla-familiar","PP");
+  const qC=flavorTotal(rec,"tortilla-chica","Q"), ppC=flavorTotal(rec,"tortilla-chica","PP");
+  const brkHtml=brk.length?'<div class="card"><p class="muted"><b>Por pizza</b></p>'+brk.map(b=>{
+    return '<div class="expl-brk" data-expl-brk="'+b.key+'"><div class="prod-head"><span><b>'+esc(b.label)+'</b> <span class="um">'+fmt(b.n)+' pizza'+(b.n===1?"":"s")+'</span></span></div>'
+      +b.fields.map(f=>'<div class="prod-head"><span>'+RECIPE_FIELDS[f]+' <span class="um">KG</span></span><span class="tot">'+fmt(b.vals[f])+' <small>kg</small></span></div>').join("")+'</div>';
+  }).join("")+'</div>':"";
+  let h='<div id="count-head"><h2>Explosión</h2>'
+    +'<div class="parttabs"><button data-part="1">1 · Cuarto frío</button><button data-part="2">2 · Cocina</button><button data-part="3" class="on">3 · Explosión</button></div></div>'
+    +'<p class="muted">Insumos que se usaron para las pizzas que quedaron en el inventario, según las recetas. Ya viene calculado: solo léelo y confírmalo.</p>'
+    +'<p class="muted">Pizzas contadas — Familiar: '+fmt(qF)+' de queso · '+fmt(ppF)+' de peperonni; Chica: '+fmt(qC)+' de queso · '+fmt(ppC)+' de peperonni.</p>'
+    +brkHtml
+    +'<div class="card"><p class="muted"><b>Total</b></p>'
+    +'<div class="prod-head" style="margin-top:8px"><span><b>Queso</b> <span class="um">KG</span></span><span class="tot" data-expl-tot="queso">'+fmt(tot.queso)+' <small>kg</small></span></div>'
+    +'<div class="prod-head"><span><b>Pasta p/ Pizza</b> <span class="um">KG</span></span><span class="tot" data-expl-tot="pasta">'+fmt(tot.pasta)+' <small>kg</small></span></div>'
+    +'<div class="prod-head"><span><b>Pepperoni</b> <span class="um">KG</span></span><span class="tot" data-expl-tot="pepperoni">'+fmt(tot.pepperoni)+' <small>kg</small></span></div></div>'
+    +(differs?'<p class="hint">⚠️ Cambiaste el conteo (o una receta) después de confirmar: al confirmar de nuevo se actualiza con los valores de arriba.</p>':"")
+    +(stored&&!differs?'<p class="note">Ya confirmada con estos valores.</p>':"")
+    +'<button class="btn primary" id="btn-confirm-explosion">✓ Confirmar explosión</button>'
+    +'<button class="btn secondary" id="btn-back-part2">← Volver a contar (Cocina)</button>';
+  el.innerHTML=h;
+  updateCountHeadTop();
+  el.querySelectorAll(".parttabs button").forEach(b=>b.addEventListener("click",()=>{ui.part=parseInt(b.dataset.part,10);renderCount();}));
+  document.getElementById("btn-confirm-explosion").addEventListener("click",()=>{
+    S.draft.explosion={pasta:tot.pasta,queso:tot.queso,pepperoni:tot.pepperoni,confirmed:true};
+    save(); toast("Explosión confirmada"); show("sheet");
+  });
+  document.getElementById("btn-back-part2").addEventListener("click",()=>{ui.part=2;renderCount();window.scrollTo(0,0);});
+  updateThumb();
+}
+document.getElementById("view-count").addEventListener("input",e=>{
+  const inp=e.target.closest("input[data-pid]");
+  if(!inp||!S.draft) return;
+  const pid=inp.dataset.pid, field=inp.dataset.field, part=inp.dataset.part;
+  if(!S.draft.parts[part]) S.draft.parts[part]={};
+  if(!S.draft.parts[part][pid]) S.draft.parts[part][pid]={};
+  if(inp.dataset.flavor){
+    if(!S.draft.parts[part][pid].flavors) S.draft.parts[part][pid].flavors={};
+    if(!S.draft.parts[part][pid].flavors[inp.dataset.flavor]) S.draft.parts[part][pid].flavors[inp.dataset.flavor]={};
+    S.draft.parts[part][pid].flavors[inp.dataset.flavor][field]=inp.value;
+  } else if(inp.dataset.bagIdx!=null){
+    if(!Array.isArray(S.draft.parts[part][pid].bolsas)) S.draft.parts[part][pid].bolsas=[];
+    S.draft.parts[part][pid].bolsas[parseInt(inp.dataset.bagIdx,10)]=inp.value;
+  } else {
+    S.draft.parts[part][pid][field]=inp.value;
+  }
+  save();
+  updateCountProgress();
+});
+/* Devolución / merma en el conteo: al marcar el check aparece el campo de
+   cantidad; al desmarcarlo se borra la cantidad (Dev/Mer queda vacío).
+   La cantidad se guarda en S.draft.devmer[pid], la misma fuente que el
+   campo manual de la hoja. */
+document.getElementById("view-count").addEventListener("change",e=>{
+  const cb=e.target.closest("input[data-devcheck]");
+  if(!cb||!S.draft) return;
+  const pid=cb.dataset.devcheck;
+  const row=cb.closest(".devrow");
+  const qty=row?row.querySelector("[data-devqty]"):null;
+  const wrap=qty?qty.closest(".devqty"):null;
+  if(cb.checked){
+    devOpen.add(pid);
+    if(wrap){ wrap.hidden=false; qty.focus(); }
+  } else {
+    devOpen.delete(pid);
+    if(!S.draft.devmer) S.draft.devmer={};
+    S.draft.devmer[pid]="";
+    if(wrap) wrap.hidden=true;
+    if(qty) qty.value="";
+    save();
+  }
+});
+document.getElementById("view-count").addEventListener("input",e=>{
+  const inp=e.target.closest("input[data-devqty]");
+  if(!inp||!S.draft) return;
+  if(!S.draft.devmer) S.draft.devmer={};
+  S.draft.devmer[inp.dataset.devqty]=inp.value;
+  save();
+});
+
+/* ============ Vista Hoja final ============ */
+function sheetTableHtml(rec,sec,readonly){
+  const rows=PRODUCTS.filter(p=>p.sec===sec);
+  let h='<h3 class="sec">'+sec+'</h3><div class="scrollx"><table class="inv"><thead><tr><th>Producto</th><th>UM</th>';
+  if(sec==="TORTILLAS"){ FLAVORS.forEach(f=>{h+='<th class="flv"><b>'+f.code+'</b><small>'+esc(f.name)+'</small></th>';}); h+="<th>DEV</th><th>Dev/Mer</th>"; }
+  if(sec==="INGREDIENTES"){ h+='<th class="num">CF / COC</th><th>Dev/Mer</th>'; }
+  if(sec==="CAJAS"){ h+='<th>DEV</th><th>Dev/Mer</th>'; }
+  if(sec!=="TORTILLAS"&&sec!=="INGREDIENTES"&&sec!=="CAJAS"){ h+='<th>Dev/Mer</th>'; }
+  h+='<th class="num">INV</th><th class="num">KARDEX</th><th class="num">DIF</th></tr></thead><tbody>';
+  rows.forEach(p=>{
+    const inv=invTotal(rec,p.id);
+    const k=num(rec.kardex&&rec.kardex[p.id]);
+    const dif=inv-k;
+    // Celda Dev/Mer (todas las secciones): mismo campo manual que
+    // Ingredientes, misma fuente (rec.devmer[pid]); en blanco si es 0.
+    const devmerCell=()=>{
+      const dm=rec.devmer&&rec.devmer[p.id]!=null?rec.devmer[p.id]:"";
+      return '<td>'+(readonly?esc(dm):'<input type="number" min="0" step="0.001" inputmode="decimal" data-devmer="'+p.id+'" value="'+esc(dm)+'">')+'</td>';
+    };
+    h+='<tr data-row="'+p.id+'"><td>'+esc(p.name)+'</td><td>'+esc(p.um)+'</td>';
+    if(sec==="TORTILLAS"){
+      FLAVORS.forEach(f=>{
+        // Calculadas: suma de ambas partes (cajas × por caja + sueltas por especialidad).
+        // El canelo lleva su total en la columna C (ver flavorCellValue).
+        h+='<td class="num">'+fmt(num(flavorCellValue(rec,p.id,f.code)))+'</td>';
+      });
+      const dev=rec.dev&&rec.dev[p.id]!=null?rec.dev[p.id]:"";
+      h+='<td>'+(readonly?esc(dev):'<input type="number" min="0" step="1" inputmode="numeric" data-dev="'+p.id+'" value="'+esc(dev)+'">')+'</td>';
+      h+=devmerCell();
+    }
+    if(sec==="INGREDIENTES"){
+      // Tercer renglón: la explosión (solo queso, pasta y pepperoni).
+      // En la hoja en pantalla sale SIEMPRE, aunque sea 0 ("Expl 0"),
+      // igual que los renglones CF y Coc. Las demás filas no llevan el
+      // renglón. (En el PDF el tercer tercio sigue en blanco cuando es 0.)
+      const exKey=EXPLOSION_PRODUCTS[p.id];
+      const exVal=exKey?num(explosionOf(rec)[exKey]):0;
+      h+='<td class="num parts">CF '+fmt(partTotal(rec,p.id,1))+'<br>Coc '+fmt(partTotal(rec,p.id,2))+(exKey?'<br>Expl '+fmt(exVal):'')+'</td>';
+      const dm=rec.devmer&&rec.devmer[p.id]!=null?rec.devmer[p.id]:"";
+      h+='<td>'+(readonly?esc(dm):'<input type="number" min="0" step="0.001" inputmode="decimal" data-devmer="'+p.id+'" value="'+esc(dm)+'">')+'</td>';
+    }
+    if(sec==="CAJAS"){
+      // DEV de las cajas = cajas vacías contadas (en blanco si son 0).
+      const vac=vaciasTotal(rec,p.id);
+      h+='<td class="num">'+(vac===0?"":fmt(vac))+'</td>';
+      h+=devmerCell();
+    }
+    if(sec!=="TORTILLAS"&&sec!=="INGREDIENTES"&&sec!=="CAJAS"){
+      h+=devmerCell();
+    }
+    h+='<td class="num" data-inv="'+p.id+'"><b>'+fmt(inv)+'</b></td>';
+    h+='<td class="num">'+(readonly?esc(k===0?"":fmt(k)):'<input type="number" step="0.001" inputmode="decimal" data-kardex="'+p.id+'" value="'+(k===0?"":esc(fmt(k)))+'">')+'</td>';
+    h+='<td class="num" data-dif="'+p.id+'"><b>'+fmt(dif)+'</b></td></tr>';
+  });
+  h+='</tbody></table></div>';
+  return h;
+}
+function renderSheet(){
+  const el=document.getElementById("view-sheet");
+  const rec=currentRec();
+  if(!rec){
+    el.innerHTML='<h2>Hoja final</h2><div class="card"><p class="muted">Aún no hay un conteo. Ve a <b>Contar</b> para empezar el inventario del día.</p><button class="btn primary" id="btn-goto-count">Ir a contar</button></div>';
+    document.getElementById("btn-goto-count").addEventListener("click",()=>show("count"));
+    return;
+  }
+  const readonly=!!ui.histId;
+  const editing=!!(S.draft&&S.draft._editId);
+  const hdr=rec.header||{};
+  let h='<h2>Hoja final'+(readonly?' · guardada':(editing?' · editando':""))+'</h2>'
+    +'<button class="btn secondary" id="btn-share">📤 Compartir hoja</button>'
+    +'<button class="btn secondary" id="btn-copy">📋 Copiar hoja</button>'
+    +'<button class="btn secondary" id="btn-print">🖨️ Imprimir / PDF</button>'
+    +'<div class="sheet"><div class="sheet-head"><div class="logo">FANÁTICOS<br>DE LA<br>PIZZA</div>'
+    +'<table><tr><td><b>SUCURSAL:</b> '+esc(hdr.sucursal||"")+'</td><td><b>TURNO:</b> '+esc(hdr.turno||"")+'</td></tr>'
+    +'<tr><td><b>FECHA:</b> '+esc(hdr.fecha||"")+'</td><td><b>HORA:</b> '+esc(hdr.hora||"")+'</td></tr></table>'
+    +'<div class="muted" style="text-align:right">Actualizado Junio 2025 Op</div></div>';
+  SECTIONS.forEach(sec=>{ h+=sheetTableHtml(rec,sec,readonly); });
+  h+='<p class="note">Las columnas de Tortillas son las especialidades de pizza (C = Sin quesear, Q = Queso, PP = Peperonni, H = Hawaiana, Sup = Suprema, 3C = 3 carnes, P/H = Peperonni/Hawaiana, P/S = Peperonni/Suprema, P/M = Peperonni/Mexicana, Pas = Pastor, Jam = Jamón, Mex = Mexicana, Cub = Cubana). Cada celda = cajas × tortillas por caja + sueltas, sumando cuarto frío y cocina. Por caja: Sin quesear — Familiar 3, Chica 2, Sartén 1; con especialidad — Familiar 2, Chica 2, Sartén 1. La Tortilla Canelo es un postre sin especialidades: 1 por caja, se cuenta por cajas y sueltas y su total va en la columna C. Cada caja es de una sola especialidad. INV de tortillas = suma de las 13 especialidades. Las cajas se calculan solas de las tortillas: Caja familiar QP = cajas de Tortilla Familiar + Tortilla Sartén + cajas vacías familiares; Caja Chica = cajas de Tortilla Chica + Tortilla Canelo + cajas vacías chicas (una caja con sueltas cuenta como caja). La columna DEV de las cajas muestra las cajas vacías contadas. DEV de tortillas se llena a mano. Dev/Mer (devolución o merma) se marca en el conteo con su cuadrito en cualquier producto o se escribe aquí: la cantidad se suma al INV y también se ve en el PDF; en las filas de cajas del PDF, las vacías, el INV y el KARDEX van una casilla a la izquierda y la última casilla lleva la Dev/Mer. En Ingredientes, la columna CF / COC muestra lo contado en cuarto frío y en cocina por producto. La explosión (Expl) muestra en Queso, Pasta p/ Pizza y Pepperoni los insumos que se usaron para las pizzas que quedaron en el inventario (tercer tercio de la casilla); en esos tres productos el INV es la suma de cuarto frío + cocina + explosión + Dev/Mer (en los demás, cuarto frío + cocina + Dev/Mer). DIF = INV − KARDEX.</p>'
+    +'<div class="signs"><div>Firma del Gerente</div><div>Firma del Cajero</div><div>Firma del Gerente de zona / Auditor</div></div></div>';
+  if(!readonly){
+    h+='<button class="btn primary" id="btn-save-history">💾 '+(editing?'Guardar cambios':'Guardar en historial')+'</button>';
+  }
+  if(readonly) h+='<button class="btn ghost" id="btn-back-history">← Volver al historial</button>';
+  else h+='<button class="btn ghost" id="btn-back-count">← Volver al conteo</button>';
+  el.innerHTML=h;
+  renderPrintSheet(rec);
+  const sh=document.getElementById("btn-save-history");
+  if(sh) sh.addEventListener("click",saveToHistory);
+  document.getElementById("btn-share").addEventListener("click",shareSheet);
+  document.getElementById("btn-copy").addEventListener("click",copySheet);
+  document.getElementById("btn-print").addEventListener("click",()=>{
+    renderPrintSheet(currentRec());
+    printSheetNative();
+  });
+  const bk=document.getElementById("btn-back-history");
+  if(bk) bk.addEventListener("click",()=>{ui.histId=null;show("history");});
+  const bc=document.getElementById("btn-back-count");
+  if(bc) bc.addEventListener("click",()=>show("count"));
+}
+document.getElementById("view-sheet").addEventListener("input",e=>{
+  const inp=e.target;
+  if(ui.histId||!S.draft) return;
+  if(inp.dataset.kardex!=null){
+    if(!S.draft.kardex) S.draft.kardex={};
+    S.draft.kardex[inp.dataset.kardex]=inp.value;
+    save();
+    const pid=inp.dataset.kardex;
+    const cell=document.querySelector('[data-dif="'+pid+'"]');
+    if(cell) cell.innerHTML="<b>"+fmt(difOf(S.draft,pid))+"</b>";
+  } else if(inp.dataset.dev!=null){
+    if(!S.draft.dev) S.draft.dev={};
+    S.draft.dev[inp.dataset.dev]=inp.value;
+    save();
+  } else if(inp.dataset.devmer!=null){
+    if(!S.draft.devmer) S.draft.devmer={};
+    S.draft.devmer[inp.dataset.devmer]=inp.value;
+    save();
+    /* Dev/Mer suma al INV: al escribirlo aquí se actualizan en vivo el
+       INV y el DIF de ese renglón (igual que el KARDEX). */
+    const pid=inp.dataset.devmer;
+    const invCell=document.querySelector('[data-inv="'+pid+'"]');
+    if(invCell) invCell.innerHTML="<b>"+fmt(invTotal(S.draft,pid))+"</b>";
+    const cell=document.querySelector('[data-dif="'+pid+'"]');
+    if(cell) cell.innerHTML="<b>"+fmt(difOf(S.draft,pid))+"</b>";
+  }
+});
+/* ¿El borrador tiene algo capturado (conteo sin terminar)? */
+function draftHasData(d){
+  if(!d) return false;
+  return PRODUCTS.some(p=>hasData(d,p.id));
+}
+/* Editar una hoja guardada desde el historial: carga una copia como
+   borrador (con marca _editId) para corregirla en Contar/Hoja final y
+   guardarla de vuelta en el MISMO registro. Si hay un conteo sin
+   terminar, primero pide guardarlo para no sobreescribir nada. */
+function editHist(id){
+  const rec=S.history.find(r=>r.id===id);
+  if(!rec) return;
+  if(S.draft&&draftHasData(S.draft)){
+    if(!confirm("Tienes un conteo sin terminar. ¿Quieres guardarlo en el historial antes de editar esta hoja?")) return;
+    saveToHistory();
+  }
+  const clone=JSON.parse(JSON.stringify(rec));
+  clone._editId=rec.id;
+  S.draft=clone;
+  ui.histId=null;
+  save();
+  show("sheet");
+}
+function saveToHistory(){
+  if(!S.draft) return;
+  const rec=JSON.parse(JSON.stringify(S.draft));
+  const editId=rec._editId||null;
+  delete rec._editId;
+  rec.savedAt=Date.now();
+  /* Editando una hoja del historial: se actualiza el MISMO registro
+     (mismo id y misma posición), no se crea uno nuevo. Si el registro
+     ya no existe (se borró mientras tanto), se guarda como nuevo. */
+  const idx=editId?S.history.findIndex(r=>r.id===editId):-1;
+  if(idx>=0){
+    rec.id=editId;
+    S.history[idx]=rec;
+    S.draft=null;
+    save();
+    toast("Inventario actualizado");
+    show("history");
+    return;
+  }
+  rec.id="inv-"+Date.now();
+  rec.savedAt=Date.now();
+  S.history.unshift(rec);
+  S.draft=null;
+  save();
+  toast("Inventario guardado en el historial");
+  show("history");
+}
+
+/* ============ Compartir / copiar ============ */
+function sheetText(rec){
+  if(!rec) return "";
+  const hdr=rec.header||{};
+  const L=[];
+  L.push("🍕 INVENTARIO DEL DÍA — Fanáticos de la Pizza");
+  L.push("Sucursal: "+(hdr.sucursal||"-")+" | Turno: "+(hdr.turno||"-"));
+  L.push("Fecha: "+(hdr.fecha||"-")+" | Hora: "+(hdr.hora||"-"));
+  SECTIONS.forEach(sec=>{
+    const rows=PRODUCTS.filter(p=>p.sec===sec&&hasData(rec,p.id));
+    if(!rows.length) return;
+    L.push("");
+    L.push("— "+sec+" —");
+    rows.forEach(p=>{
+      const inv=invTotal(rec,p.id);
+      const k=num(rec.kardex&&rec.kardex[p.id]);
+      if(sec==="CAJAS"){
+        const vac=vaciasTotal(rec,p.id);
+        const dm=num(rec.devmer&&rec.devmer[p.id]);
+        L.push(p.name+": INV "+fmt(inv)+(vac>0?" ("+fmt(vac)+" vacía"+(vac===1?"":"s")+")":"")+(dm!==0?" + Dev/Mer "+fmt(dm):"")+" | KARD "+fmt(k)+" | DIF "+fmt(inv-k));
+      } else if(sec==="INGREDIENTES"){
+        const um=(p.um||"").toLowerCase();
+        // La explosión también suma al INV (tercer tercio): se muestra en
+        // la suma solo cuando es distinta de 0, como en la hoja y el PDF.
+        // La Dev/Mer (devolución o merma) también suma al INV y se muestra
+        // solo cuando es distinta de 0.
+        const exKey=EXPLOSION_PRODUCTS[p.id];
+        const exVal=exKey?num(explosionOf(rec)[exKey]):0;
+        const dm=num(rec.devmer&&rec.devmer[p.id]);
+        let det="CF "+fmt(partTotal(rec,p.id,1))+" "+um+" + Coc "+fmt(partTotal(rec,p.id,2))+" "+um;
+        if(exVal!==0) det+=" + Expl "+fmt(exVal)+" "+um;
+        if(dm!==0) det+=" + Dev/Mer "+fmt(dm)+" "+um;
+        L.push(p.name+": "+det+" = "+fmt(inv)+" "+um+" | KARD "+fmt(k)+" | DIF "+fmt(inv-k));
+      } else {
+        const dm=num(rec.devmer&&rec.devmer[p.id]);
+        L.push(p.name+": INV "+fmt(inv)+(dm!==0?" + Dev/Mer "+fmt(dm):"")+" | KARD "+fmt(k)+" | DIF "+fmt(inv-k));
+      }
+    });
+  });
+  return L.join("\n");
+}
+function copyText(t,msg){
+  const done=()=>toast(msg||"Copiado");
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(done).catch(()=>fallbackCopy(t,done));
+  } else fallbackCopy(t,done);
+}
+function fallbackCopy(t,done){
+  const ta=document.createElement("textarea");
+  ta.value=t; document.body.appendChild(ta); ta.select();
+  try{document.execCommand("copy");done();}catch(e){toast("No se pudo copiar");}
+  ta.remove();
+}
+function shareSheet(){
+  const rec=currentRec(); if(!rec) return;
+  const t=sheetText(rec);
+  if(navigator.share){
+    navigator.share({title:"Inventario del día",text:t}).catch(()=>{});
+  } else {
+    copyText(t,"Copiado — pégalo en WhatsApp");
+  }
+}
+function copySheet(){
+  const rec=currentRec(); if(!rec) return;
+  copyText(sheetText(rec),"Hoja copiada");
+}
+
+/* ============ Importar / exportar inventarios (Historial) ============ */
+/* Exporta todos los inventarios guardados a un archivo .txt (con el JSON
+   adentro, igual que el respaldo de Control de Finanzas) para respaldarlos
+   o pasarlos a otro teléfono, y los importa de vuelta. El contenido es
+   {app:"quesihelper", type:"inventarios", version:1, exportedAt, history:[...]}.
+   En la app (Capacitor) el WebView no descarga enlaces <a download>: el archivo
+   se guarda directo en Descargas/Quesi-Helper con el plugin BackupDownload
+   (el mismo de Control de Finanzas). En el navegador se descarga el archivo. */
+const HIST_EXPORT_FOLDER="Quesi-Helper";
+function histFileName(){
+  return "quesihelper-inventarios-"+isoDate(new Date())+".txt";
+}
+function histExportPayload(records){
+  return {app:"quesihelper",type:"inventarios",version:1,exportedAt:Date.now(),history:records||S.history};
+}
+function hasCapBackupDownload(){try{var C=window.Capacitor;return !!(C&&C.Plugins&&C.Plugins.BackupDownload&&C.Plugins.BackupDownload.save)}catch(e){return false}}
+function downloadHistFile(txt,fname){
+  try{
+    var url=null;
+    try{url=URL.createObjectURL(new Blob([txt],{type:"text/plain"}));}catch(e){}
+    var a=document.createElement("a");
+    a.href=url||("data:application/json;charset=utf-8,"+encodeURIComponent(txt));
+    a.download=fname;
+    document.body.appendChild(a);a.click();
+    setTimeout(function(){try{URL.revokeObjectURL(url)}catch(e){}a.remove();},200);
+    return true;
+  }catch(e){return false}
+}
+function shareHistFile(txt,fname,count){
+  try{
+    var file=new File([txt],fname,{type:"text/plain"});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      navigator.share({files:[file],title:"Inventarios Quesi-Helper"}).then(function(){toast("Elige dónde guardar tus inventarios")}).catch(function(){});
+      return true;
+    }
+  }catch(e){}
+  if(downloadHistFile(txt,fname)){toast("Inventarios exportados ("+count+")");return true;}
+  toast("No se pudo exportar");
+  return false;
+}
+/* Guarda el archivo de inventarios: en la app con el plugin nativo a
+   Descargas/Quesi-Helper; si falla o no está, menú de compartir y, en el
+   navegador, descarga directa. count = cuántos inventarios trae el archivo. */
+function saveHistFile(txt,fname,count){
+  if(hasCapBackupDownload()){
+    try{
+      var p=window.Capacitor.Plugins.BackupDownload.save({filename:fname,data:txt,folder:HIST_EXPORT_FOLDER});
+      if(p&&p.then){p.then(function(){toast(count+" inventario"+(count===1?"":"s")+" guardado"+(count===1?"":"s")+" en Descargas/"+HIST_EXPORT_FOLDER)},function(){shareHistFile(txt,fname,count)});return;}
+    }catch(e){}
+  }
+  shareHistFile(txt,fname,count);
+}
+function exportHist(){
+  if(!S.history.length){toast("No hay inventarios para exportar");return;}
+  saveHistFile(JSON.stringify(histExportPayload()),histFileName(),S.history.length);
+}
+/* Exporta UN solo inventario elegido de la lista (el archivo trae solo ese). */
+function exportHistOne(id){
+  var rec=S.history.find(function(r){return r.id===id;});
+  if(!rec){toast("No se encontró ese inventario");return;}
+  var hdr=rec.header||{};
+  var fecha=/^\d{4}-\d{2}-\d{2}$/.test(hdr.fecha||"")?hdr.fecha:isoDate(new Date());
+  saveHistFile(JSON.stringify(histExportPayload([rec])),"quesihelper-inventario-"+fecha+".txt",1);
+}
+/* Limpia un inventario importado: estructura mínima válida (encabezado,
+   conteos por parte, kardex, dev, devmer, sabores) con valores por defecto.
+   Lo que no sea objeto se rechaza (null). */
+function cleanHistRecord(raw){
+  if(!raw||typeof raw!=="object"||Array.isArray(raw)) return null;
+  var r={};
+  var h=(raw.header&&typeof raw.header==="object"&&!Array.isArray(raw.header))?raw.header:{};
+  r.header={sucursal:String(h.sucursal||""),turno:String(h.turno||""),fecha:String(h.fecha||""),hora:String(h.hora||"")};
+  r.parts=(raw.parts&&typeof raw.parts==="object"&&!Array.isArray(raw.parts))?raw.parts:{"1":{},"2":{}};
+  if(!r.parts["1"]||typeof r.parts["1"]!=="object"||Array.isArray(r.parts["1"])) r.parts["1"]={};
+  if(!r.parts["2"]||typeof r.parts["2"]!=="object"||Array.isArray(r.parts["2"])) r.parts["2"]={};
+  r.kardex=(raw.kardex&&typeof raw.kardex==="object"&&!Array.isArray(raw.kardex))?raw.kardex:{};
+  r.flavors=(raw.flavors&&typeof raw.flavors==="object"&&!Array.isArray(raw.flavors))?raw.flavors:{};
+  r.dev=(raw.dev&&typeof raw.dev==="object"&&!Array.isArray(raw.dev))?raw.dev:{};
+  r.devmer=(raw.devmer&&typeof raw.devmer==="object"&&!Array.isArray(raw.devmer))?raw.devmer:{};
+  r.createdAt=num(raw.createdAt)||Date.now();
+  r.savedAt=num(raw.savedAt)||r.createdAt;
+  r.id=(typeof raw.id==="string"&&raw.id)?raw.id:("inv-"+Date.now()+"-"+Math.random().toString(36).slice(2,8));
+  if(raw.explosion&&typeof raw.explosion==="object") r.explosion=raw.explosion;
+  return r;
+}
+/* Importa inventarios desde el contenido ya parseado de un archivo exportado.
+   Acepta el formato de exportación ({history:[...]}) o una lista simple de
+   inventarios. Los que ya están en el historial (mismo id) se omiten; los
+   nuevos se agregan y el historial queda ordenado del más reciente al más
+   viejo. Devuelve {added, skipped} o null si el contenido no es válido. */
+function importHistData(data){
+  var arr=null;
+  if(Array.isArray(data)) arr=data;
+  else if(data&&typeof data==="object"&&Array.isArray(data.history)) arr=data.history;
+  if(!arr) return null;
+  var existing={};
+  S.history.forEach(function(r){existing[r.id]=true;});
+  var added=0,skipped=0;
+  arr.forEach(function(raw){
+    var rec=cleanHistRecord(raw);
+    if(!rec){skipped++;return;}
+    if(existing[rec.id]){skipped++;return;}
+    existing[rec.id]=true;
+    migrateCaneloRecord(rec);
+    S.history.push(rec);
+    added++;
+  });
+  if(added){
+    S.history.sort(function(a,b){return num(b.savedAt||b.createdAt)-num(a.savedAt||a.createdAt);});
+    save();
+  }
+  return {added:added,skipped:skipped};
+}
+function importHistFile(file){
+  if(!file) return;
+  var reader=new FileReader();
+  reader.onload=function(){
+    var res=null;
+    try{res=importHistData(JSON.parse(reader.result));}catch(e){res=null;}
+    if(!res){toast("El archivo no es un respaldo de inventarios válido");return;}
+    if(!res.added){
+      toast(res.skipped?"Esos inventarios ya están en el historial":"No se importó ningún inventario");
+      return;
+    }
+    renderHistory();
+    toast(res.added+" inventario"+(res.added===1?"":"s")+" importado"+(res.added===1?"":"s")+(res.skipped?" · "+res.skipped+" ya existían":""));
+  };
+  reader.onerror=function(){toast("No se pudo leer el archivo");};
+  reader.readAsText(file);
+}
+
+/* ============ Vista Historial ============ */
+function renderHistory(){
+  const el=document.getElementById("view-history");
+  let h="<h2>Historial</h2>";
+  h+='<div class="card"><div class="row"><button class="btn small secondary" id="btn-export-hist">📤 Exportar inventarios</button><button class="btn small secondary" id="btn-import-hist">📥 Importar inventarios</button></div><p class="muted" style="margin-top:8px">Exporta tus inventarios guardados a un archivo para respaldarlos o pasarlos a otro teléfono. Con Importar los agregas de vuelta.</p><input type="file" id="hist-import-file" accept=".json,.txt,application/json,text/plain" style="display:none"></div>';
+  if(!S.history.length){
+    h+='<div class="card"><p class="muted">Aún no hay inventarios guardados. Cuando termines un conteo, guárdalo desde la <b>Hoja final</b>.</p></div>';
+  }
+  S.history.forEach(rec=>{
+    const hdr=rec.header||{};
+    const counted=PRODUCTS.filter(p=>invTotal(rec,p.id)!==0).length;
+    h+='<div class="hist-item"><b>'+esc(hdr.fecha||"Sin fecha")+' · '+esc(hdr.turno||"Sin turno")+'</b><br>'
+      +'<span class="muted">'+esc(hdr.sucursal||"Sin sucursal")+' · '+esc(hdr.hora||"")+' · '+counted+' productos con inventario</span>'
+      +'<div class="row" style="margin-top:8px"><button class="btn small primary" data-view-hist="'+rec.id+'">Ver hoja</button>'
+      +'<button class="btn small secondary" data-edit-hist="'+rec.id+'">✏️ Editar</button>'
+      +'<button class="btn small secondary" data-exp-hist="'+rec.id+'">📤 Exportar</button>'
+      +'<button class="btn small ghost" data-del-hist="'+rec.id+'">Borrar</button></div></div>';
+  });
+  el.innerHTML=h;
+  const be=document.getElementById("btn-export-hist");
+  if(be) be.addEventListener("click",exportHist);
+  const bi=document.getElementById("btn-import-hist");
+  const fi=document.getElementById("hist-import-file");
+  if(bi&&fi){
+    bi.addEventListener("click",()=>fi.click());
+    fi.addEventListener("change",()=>{importHistFile(fi.files&&fi.files[0]);fi.value="";});
+  }
+  el.querySelectorAll("[data-view-hist]").forEach(b=>b.addEventListener("click",()=>{
+    ui.histId=b.dataset.viewHist; show("sheet");
+  }));
+  el.querySelectorAll("[data-edit-hist]").forEach(b=>b.addEventListener("click",()=>{
+    editHist(b.dataset.editHist);
+  }));
+  el.querySelectorAll("[data-exp-hist]").forEach(b=>b.addEventListener("click",()=>{
+    exportHistOne(b.dataset.expHist);
+  }));
+  el.querySelectorAll("[data-del-hist]").forEach(b=>b.addEventListener("click",()=>{
+    if(confirm("¿Borrar este inventario guardado?")){
+      S.history=S.history.filter(r=>r.id!==b.dataset.delHist);
+      save(); renderHistory(); toast("Inventario borrado");
+    }
+  }));
+}
+
+/* ============ Compartir / importar configuración ============ */
+/* La configuración se comparte como un texto de una sola línea (para que no
+   se rompa al pasarlo por WhatsApp): prefijo reconocible + JSON compacto en
+   base64. Incluye todo lo de Configuración: grupos, cantidades por paquete
+   (las dos de tortillas), tipos de bolsa, envases con su unidad y recipiente,
+   y las recetas de la explosión.
+   La sucursal/turno/fecha/hora NO son configuración: son del encabezado. */
+const CFG_PREFIX="QUESIHELPER-CONFIG:";
+function b64encode(str){
+  return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g,function(m,p){return String.fromCharCode(parseInt(p,16));}));
+}
+function b64decode(b64){
+  return decodeURIComponent(atob(b64).split("").map(function(c){return "%"+("00"+c.charCodeAt(0).toString(16)).slice(-2);}).join(""));
+}
+function exportCfgText(){
+  return CFG_PREFIX+b64encode(JSON.stringify({v:1,cfg:S.cfg}));
+}
+function shareCfg(){
+  const t=exportCfgText();
+  const ta=document.getElementById("cfg-export-text");
+  if(ta) ta.value=t;
+  if(navigator.share){
+    navigator.share({title:"Configuración Quesi-Helper",text:t}).catch(()=>{});
+  } else {
+    copyText(t,"Configuración copiada — pégala en WhatsApp");
+  }
+}
+/* Limpia una configuración importada: solo productos conocidos, solo campos
+   conocidos y valores válidos. Lo desconocido se ignora y lo que falta se
+   rellena con los valores por defecto al aplicar (vía compatCfg). */
+function cleanCfg(raw){
+  if(!raw||typeof raw!=="object") return null;
+  const cfgObj=(raw.cfg&&typeof raw.cfg==="object")?raw.cfg:raw;
+  const out={};
+  let any=false;
+  PRODUCTS.forEach(p=>{
+    const c=cfgObj[p.id];
+    if(!c||typeof c!=="object") return;
+    any=true;
+    const d={};
+    if(c.group==="contable"||c.group==="nocontable") d.group=c.group;
+    if(typeof c.inPackage==="boolean") d.inPackage=c.inPackage;
+    if(typeof c.useTare==="boolean") d.useTare=c.useTare;
+    if(typeof c.weighBag==="boolean") d.weighBag=c.weighBag;
+    // Campos numéricos: solo se incluyen si el texto importado los trae.
+    // Si faltan, NO se ponen en null: así la importación parcial no borra
+    // los valores por defecto (antes se borraban: cleanCfg ponía null y
+    // Object.assign lo pisaba; con los defaults genéricos no se notaba
+    // porque ya eran null, pero con la config de Alejandro sí).
+    ["qtyPerPackage","qtyPerPackageEsp","envSize","tareWeight","weightPerPiece"].forEach(f=>{
+      if(!(f in c)) return;
+      if(c[f]==null) d[f]=null;
+      else { const n=parseFloat(c[f]); if(isFinite(n)) d[f]=n; }
+    });
+    if(c.envUnit==="kg"||c.envUnit==="l"||c.envUnit==="porción") d.envUnit=c.envUnit;
+    if(Array.isArray(c.bagTypes)){
+      d.bagTypes=c.bagTypes.filter(t=>t&&typeof t==="object").map(t=>({
+        name:(typeof t.name==="string"?t.name.slice(0,30):""),
+        size:(t.size==null?null:(isFinite(parseFloat(t.size))?parseFloat(t.size):null))
+      }));
+    }
+    out[p.id]=d;
+  });
+  return any?out:null;
+}
+/* Limpia las recetas de una configuración importada: solo las 4 recetas
+   conocidas, solo sus campos y valores numéricos válidos (≥ 0). Lo
+   desconocido se ignora; lo que falta se rellena con el valor por defecto
+   al aplicar. Devuelve null si el texto no trae ninguna receta válida
+   (textos viejos: se usan los valores por defecto). */
+function cleanRecipes(raw){
+  if(!raw||typeof raw!=="object") return null;
+  const cfgObj=(raw.cfg&&typeof raw.cfg==="object")?raw.cfg:raw;
+  const r=cfgObj.recipes;
+  if(!r||typeof r!=="object") return null;
+  const out={};
+  let any=false;
+  RECIPES.forEach(def=>{
+    const q=r[def.key];
+    if(!q||typeof q!=="object") return;
+    const d={};
+    def.fields.forEach(f=>{
+      const v=q[f];
+      if(v!=null&&v!==""&&isFinite(num(v))&&num(v)>=0){ d[f]=num(v); any=true; }
+    });
+    if(Object.keys(d).length) out[def.key]=d;
+  });
+  return any?out:null;
+}
+function importCfg(){
+  const ta=document.getElementById("cfg-import-text");
+  const msg=document.getElementById("cfg-import-msg");
+  const say=(t,ok)=>{ if(msg){msg.textContent=t;msg.style.color=ok?"#15803d":"#b91c1c";} };
+  if(!ta) return;
+  const raw=ta.value.trim();
+  if(raw.indexOf(CFG_PREFIX)!==0){
+    say("Ese texto no es una configuración de Quesi-Helper. Pega el texto completo que empieza con "+CFG_PREFIX);
+    return;
+  }
+  let parsed;
+  try{
+    parsed=JSON.parse(b64decode(raw.slice(CFG_PREFIX.length).replace(/\s+/g,"")));
+  }catch(e){
+    say("No se pudo leer la configuración: el texto está incompleto o dañado. Revisa que lo hayas pegado completo.");
+    return;
+  }
+  const cleaned=cleanCfg(parsed);
+  const cleanedRecipes=cleanRecipes(parsed);
+  if(!cleaned&&!cleanedRecipes){
+    say("La configuración no trae ningún insumo conocido. No se cambió nada.");
+    return;
+  }
+  if(!confirm("¿Reemplazar la configuración actual con la importada? Se borra lo que tengas configurado.")) return;
+  const base=defaultCfg();
+  if(cleaned) PRODUCTS.forEach(p=>{ if(cleaned[p.id]) Object.assign(base[p.id],cleaned[p.id]); });
+  // Las recetas se mezclan con los valores por defecto: una receta parcial
+  // importada no borra los campos que no trae.
+  if(cleanedRecipes){
+    RECIPES.forEach(def=>{
+      if(cleanedRecipes[def.key]) Object.assign(base.recipes[def.key],cleanedRecipes[def.key]);
+    });
+  }
+  S.cfg=base;
+  compatCfg();
+  save();
+  renderConfig();
+  toast("Configuración importada");
+}
+
+/* ============ Vista Configuración ============ */
+function cfgGroupDefaults(group){
+  if(group==="contable") return {group:"contable",inPackage:false,qtyPerPackage:null,qtyPerPackageEsp:null,weighBag:false,weightPerPiece:null,envSize:null,envUnit:"kg",useTare:false,tareWeight:null};
+  return {group:"nocontable",inPackage:false,qtyPerPackage:null,qtyPerPackageEsp:null,bagTypes:[],envSize:null,envUnit:"kg",useTare:false,tareWeight:null};
+}
+/* Sub-pestañas de Configuración: el bloque de compartir/importar, la
+   sucursal y el turno, y el tamaño de letra quedan SIEMPRE visibles
+   arriba (no pertenecen a ninguna sub-pestaña); debajo, "Inventario"
+   trae la configuración de productos y el restablecer, y "Explosión"
+   trae las recetas. */
+function recipesConfigHtml(){
+  const r=recipesOf();
+  let h='<h3 class="sec">Explosión / Recetas</h3>'
+    +'<div class="card"><p class="muted">Por cada pizza, cuántos insumos se gastan (en kg). La explosión usa estas recetas para calcular los insumos de las tortillas contadas. Solo cuentan queso, pasta y pepperoni; las demás especialidades no tienen receta por el momento.</p></div>';
+  RECIPES.forEach(def=>{
+    h+='<div class="cfg-prod"><div class="row"><span><b>'+esc(def.label)+'</b> <span class="um">por pizza</span></span></div><div class="fields">';
+    def.fields.forEach(f=>{
+      h+='<label>'+esc(RECIPE_FIELDS[f])+' (kg)<input type="number" min="0" step="0.001" inputmode="decimal" data-recipe="'+def.key+'" data-recipe-field="'+f+'" value="'+esc(r[def.key][f]==null?"":r[def.key][f])+'"></label>';
+    });
+    h+='</div></div>';
+  });
+  return h;
+}
+/* Buscador de Configuración / Inventario: normaliza el texto para que la
+   búsqueda no distinga mayúsculas ni acentos ("QUESO" y "jalapeño" valen
+   igual), ignore espacios y signos, y colapse letras repetidas seguidas
+   ("peperonni" encuentra a Pepperoni, "mantequilla" a Mantequilla). */
+function normText(s){
+  return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"").replace(/(.)\1+/g,"$1");
+}
+/* Filtra la lista de productos de Configuración / Inventario según
+   ui.cfgSearch, sin re-renderizar (el foco del buscador no se pierde):
+   muestra solo los insumos cuyo nombre coincida, oculta las secciones
+   (Contables / No contables) y las secciones generales de arriba
+   (Sucursal y turno, Tamaño de letra) cuando no tienen coincidencias,
+   y muestra "Sin resultados" si nada coincide. */
+function applyCfgSearch(){
+  const el=document.getElementById("view-config");
+  if(!el) return;
+  const q=normText(ui.cfgSearch||"");
+  const si=document.getElementById("cfg-search");
+  if(si&&si.value!==(ui.cfgSearch||"")) si.value=ui.cfgSearch||"";
+  const prefs=document.getElementById("cfg-prefs-wrap");
+  // Las secciones generales (Sucursal y turno, Tamaño de letra) solo se
+  // ocultan al buscar dentro de la sub-pestaña Inventario; en Explosión
+  // siempre se ven, aunque haya una búsqueda guardada.
+  if(prefs) prefs.hidden=q!==""&&(ui.cfgTab||"inventario")==="inventario";
+  let visible=0;
+  el.querySelectorAll(".cfg-prod[data-cfg]").forEach(div=>{
+    const p=PRODUCTS.find(x=>x.id===div.dataset.cfg);
+    const match=q===""||(p&&normText(p.name).includes(q));
+    div.hidden=!match;
+    if(match) visible++;
+  });
+  ["contable","nocontable"].forEach(g=>{
+    const head=el.querySelector('h3.sec[data-cfg-group="'+g+'"]');
+    if(!head) return;
+    const any=[...el.querySelectorAll(".cfg-prod[data-cfg]")].some(d=>!d.hidden&&S.cfg[d.dataset.cfg]&&S.cfg[d.dataset.cfg].group===g);
+    head.hidden=q!==""&&!any;
+  });
+  const nr=document.getElementById("cfg-no-results");
+  if(nr) nr.hidden=!(q!==""&&visible===0);
+}
+function renderConfig(){
+  const el=document.getElementById("view-config");
+  const tab=ui.cfgTab||"inventario";
+  const fsCur=FONT_SIZES[S.prefs.fontSize]?S.prefs.fontSize:"normal";
+  let h="<h2>Configuración</h2>"
+    +'<p class="muted">Los valores se ponen una vez y quedan guardados hasta que los cambies aquí. Mover un insumo de grupo reinicia su método de conteo.</p>'
+    +'<h3 class="sec">Compartir configuración</h3>'
+    +'<div class="card"><p class="muted">Comparte tu configuración con otra persona que use la app, para que no tenga que configurarlo todo de cero: grupos contable/no contable, cantidades por paquete (las dos de tortillas), tipos de bolsa, envases con su unidad y recipientes, y las recetas de la explosión.</p>'
+    +'<button class="btn primary" id="btn-share-cfg">📤 Compartir configuración</button>'
+    +'<label class="f">Texto de tu configuración (también se copia al compartir)</label>'
+    +'<textarea id="cfg-export-text" readonly rows="3" style="width:100%;padding:10px 9px;font-size:calc(13px * var(--fs));border:1px solid #d6d3d1;border-radius:8px;background:#fff;color:#26221f" placeholder="Toca «Compartir configuración» para generarlo"></textarea>'
+    +'<label class="f">Importar configuración (pega aquí el texto que te compartieron)</label>'
+    +'<textarea id="cfg-import-text" rows="3" style="width:100%;padding:10px 9px;font-size:calc(13px * var(--fs));border:1px solid #d6d3d1;border-radius:8px;background:#fff;color:#26221f" placeholder="QUESIHELPER-CONFIG:..."></textarea>'
+    +'<p id="cfg-import-msg" class="note" style="margin:6px 0 0"></p>'
+    +'<button class="btn secondary" id="btn-import-cfg">📥 Importar configuración</button></div>'
+    +'<div id="cfg-prefs-wrap"><h3 class="sec">Sucursal y turno</h3>'
+    +'<div class="card"><p class="muted">Se configuran una vez y quedan guardados: cada inventario nuevo ya trae la sucursal y el turno llenos, solo para confirmarlos. Si un día te toca otra sucursal u otro turno, cámbialos en el encabezado de ese inventario (solo vale para ese día). La fecha y la hora se ponen solas con las de hoy.</p>'
+    +'<label class="f">Sucursal</label><input type="text" id="pref-sucursal" data-pref="sucursal" placeholder="Ej. Filadelfia" value="'+esc(S.prefs.sucursal)+'">'
+    +'<label class="f">Turno</label><input type="text" id="pref-turno" data-pref="turno" placeholder="Ej. Matutino" value="'+esc(S.prefs.turno)+'"></div>'
+    +'<h3 class="sec">Tamaño de letra</h3>'
+    +'<div class="card"><p class="muted">Agranda (o achica) las letras de toda la app en este teléfono. Solo vale para este dispositivo: si otra persona usa la app en su teléfono, pone el tamaño que le convenga ahí. El PDF no cambia.</p>'
+    +'<div class="parttabs">'+["chico","normal","grande","muygrande"].map(k=>'<button data-fontsize="'+k+'" class="'+(fsCur===k?"on":"")+'">'+FONT_SIZES[k]+'</button>').join("")+'</div></div></div>'
+    +'<div class="parttabs"><button data-cfgtab="inventario" class="'+(tab==="inventario"?"on":"")+'">Inventario</button><button data-cfgtab="explosion" class="'+(tab==="explosion"?"on":"")+'">Explosión</button></div>';
+  if(tab==="explosion"){
+    h+=recipesConfigHtml();
+  } else {
+    h+='<div style="margin:10px 0 4px"><input type="search" id="cfg-search" placeholder="🔍 Buscar insumo..." value="'+esc(ui.cfgSearch||"")+'" autocomplete="off" style="width:100%;padding:10px 12px;font-size:calc(15px * var(--fs));border:1px solid #d6d3d1;border-radius:10px;background:#fff;color:#26221f"></div>'
+    +'<p id="cfg-no-results" class="note" hidden>Sin resultados</p>';
+  ["contable","nocontable"].forEach(group=>{
+    const list=PRODUCTS.filter(p=>S.cfg[p.id].group===group);
+    h+='<h3 class="sec" data-cfg-group="'+group+'">'+(group==="contable"?"Contables":"No contables")+' ('+list.length+')</h3>';
+    list.forEach(p=>{
+      const c=S.cfg[p.id];
+      h+='<div class="cfg-prod" data-cfg="'+p.id+'"><div class="row"><span><b>'+esc(p.name)+'</b> <span class="um">'+esc(p.um)+'</span></span>'
+        +'<button class="btn small ghost" data-move="'+p.id+'">→ '+(group==="contable"?"No contables":"Contables")+'</button></div>';
+      if(p.id==="caja-familiar-qp"||p.id==="caja-chica"){
+        h+='<p class="note">Se calcula sola de las tortillas: '+(p.id==="caja-familiar-qp"?"suma de las cajas de Tortilla Familiar y Tortilla Sartén":"suma de las cajas de Tortilla Chica y Tortilla Canelo")+' de ambas partes (una caja con sueltas cuenta como caja), más las cajas vacías que se piden en el conteo. No se cuenta a mano (salvo las vacías).</p>';
+      } else if(group==="contable"){
+        h+='<label class="check"><input type="checkbox" data-cfg-field="inPackage" data-pid="'+p.id+'" '+(c.inPackage?"checked":"")+'> Viene en paquete</label>';
+        if(c.inPackage){
+          if(p.id==="tortilla-canelo"){
+            h+='<label class="f">Tortillas por caja</label><input type="number" min="1" step="1" inputmode="numeric" data-cfg-field="qtyPerPackage" data-pid="'+p.id+'" value="'+esc(c.qtyPerPackage==null?"":c.qtyPerPackage)+'">'
+              +'<p class="note">El canelo es un postre: no lleva especialidad ni queso, solo se cuenta por cajas y sueltas.</p>';
+          } else if(p.sec==="TORTILLAS"){
+            h+='<div class="grid2"><div><label class="f">Por paquete · Sin quesear (C)</label><input type="number" min="1" step="1" inputmode="numeric" data-cfg-field="qtyPerPackage" data-pid="'+p.id+'" value="'+esc(c.qtyPerPackage==null?"":c.qtyPerPackage)+'"></div>'
+              +'<div><label class="f">Por paquete · Con especialidad</label><input type="number" min="1" step="1" inputmode="numeric" data-cfg-field="qtyPerPackageEsp" data-pid="'+p.id+'" value="'+esc(c.qtyPerPackageEsp==null?"":c.qtyPerPackageEsp)+'"></div></div>'
+              +'<p class="note">Cada caja es de una sola especialidad.</p>';
+          } else {
+            h+='<label class="f">'+(c.weighBag?"Sobres por caja":"Cantidad por paquete")+'</label><input type="number" min="1" step="1" inputmode="numeric" data-cfg-field="qtyPerPackage" data-pid="'+p.id+'" value="'+esc(c.qtyPerPackage==null?"":c.qtyPerPackage)+'">';
+            h+='<label class="check"><input type="checkbox" data-cfg-field="weighBag" data-pid="'+p.id+'" '+(c.weighBag?"checked":"")+'> La bolsa suelta se pesa (no se cuenta pieza por pieza)</label>';
+            if(c.weighBag){
+              h+='<label class="f">Peso por pieza (kg)</label><input type="number" min="0" step="0.001" inputmode="decimal" data-cfg-field="weightPerPiece" data-pid="'+p.id+'" value="'+esc(c.weightPerPiece==null?"":c.weightPerPiece)+'">'
+                +'<p class="note">Total = cajas × sobres por caja + peso de la bolsa suelta / peso por pieza (redondeado a piezas enteras). Ej. un sobre pesa 0.009 kg (9 g).</p>';
+            }
+          }
+        }
+      } else {
+        const types=bagTypesOf(c);
+        h+='<label class="f">Tipos de bolsa (peso por bolsa)</label>';
+        types.forEach((ty,i)=>{
+          h+='<div class="grid2" style="margin-top:6px"><div><input type="text" placeholder="Nombre (opcional)" data-cfg-field="bagTypeName" data-bag-idx="'+i+'" data-pid="'+p.id+'" value="'+esc(ty.name||"")+'"></div>'
+            +'<div style="display:flex;gap:6px"><input type="number" min="0" step="0.001" inputmode="decimal" data-cfg-field="bagTypeSize" data-bag-idx="'+i+'" data-pid="'+p.id+'" value="'+esc(ty.size==null?"":ty.size)+'" style="flex:1;min-width:0">'
+            +'<button class="btn small ghost" data-del-bag="'+p.id+':'+i+'">✕</button></div></div>';
+        });
+        h+='<button class="btn small secondary" data-add-bag="'+p.id+'" style="margin-top:6px">+ Agregar tipo de bolsa</button>';
+        h+='<label class="f">Unidad</label><select data-cfg-field="envUnit" data-pid="'+p.id+'">'
+          +["kg","l","porción"].map(u=>'<option value="'+u+'" '+(c.envUnit===u?"selected":"")+'>'+u+'</option>').join("")+'</select>'
+          +'<label class="check"><input type="checkbox" data-cfg-field="useTare" data-pid="'+p.id+'" '+(c.useTare?"checked":"")+'> Agregar peso del recipiente</label>';
+        if(c.useTare){
+          h+='<label class="f">Peso del recipiente (kg)</label><input type="number" min="0" step="0.001" inputmode="decimal" data-cfg-field="tareWeight" data-pid="'+p.id+'" value="'+esc(c.tareWeight==null?"":c.tareWeight)+'">';
+        }
+      }
+      h+='</div>';
+    });
+  });
+    h+='<button class="btn secondary" id="btn-reset-cfg">Restablecer valores iniciales</button>';
+  }
+  el.innerHTML=h;
+  el.querySelectorAll("[data-cfgtab]").forEach(b=>b.addEventListener("click",()=>{ui.cfgTab=b.dataset.cfgtab;renderConfig();}));
+  // Tamaño de letra: se guarda en prefs (por dispositivo, no se comparte)
+  // y se aplica en el momento; el cambio se ve en toda la app.
+  el.querySelectorAll("[data-fontsize]").forEach(b=>b.addEventListener("click",()=>{
+    S.prefs.fontSize=b.dataset.fontsize; save(); applyFontSize(); renderConfig();
+  }));
+  el.querySelectorAll("[data-move]").forEach(b=>b.addEventListener("click",()=>{
+    const pid=b.dataset.move;
+    const ng=S.cfg[pid].group==="contable"?"nocontable":"contable";
+    const keepUnit=S.cfg[pid].envUnit;
+    S.cfg[pid]=cfgGroupDefaults(ng);
+    if(ng==="nocontable") S.cfg[pid].envUnit=keepUnit||"kg";
+    save(); renderConfig();
+    toast("Insumo movido a "+(ng==="contable"?"Contables":"No contables"));
+  }));
+  el.querySelectorAll("[data-add-bag]").forEach(b=>b.addEventListener("click",()=>{
+    const pid=b.dataset.addBag;
+    if(!Array.isArray(S.cfg[pid].bagTypes)) S.cfg[pid].bagTypes=[];
+    S.cfg[pid].bagTypes.push({name:"",size:null});
+    save(); renderConfig();
+  }));
+  el.querySelectorAll("[data-del-bag]").forEach(b=>b.addEventListener("click",()=>{
+    const parts=b.dataset.delBag.split(":");
+    const pid=parts[0], idx=parseInt(parts[1],10);
+    if(Array.isArray(S.cfg[pid].bagTypes)) S.cfg[pid].bagTypes.splice(idx,1);
+    save(); renderConfig();
+  }));
+  const rb=document.getElementById("btn-reset-cfg");
+  if(rb) rb.addEventListener("click",()=>{
+    if(confirm("¿Restablecer todos los insumos a los valores iniciales?")){
+      S.cfg=defaultCfg(); save(); renderConfig(); toast("Configuración restablecida");
+    }
+  });
+  document.getElementById("btn-share-cfg").addEventListener("click",shareCfg);
+  document.getElementById("btn-import-cfg").addEventListener("click",importCfg);
+  // Buscador de insumos: filtra al teclear sin re-renderizar (no se pierde
+  // el foco ni lo escrito); al re-renderizar por otro cambio, el filtro se
+  // vuelve a aplicar con el texto guardado en ui.cfgSearch.
+  const si=document.getElementById("cfg-search");
+  if(si) si.addEventListener("input",()=>{ ui.cfgSearch=si.value; applyCfgSearch(); });
+  applyCfgSearch();
+}
+document.getElementById("view-config").addEventListener("input",e=>{
+  // Sucursal y turno guardados: se escriben una vez y quedan para todos
+  // los inventarios nuevos (se guardan al teclear, sin re-renderizar).
+  const pref=e.target.closest("[data-pref]");
+  if(pref){ S.prefs[pref.dataset.pref]=pref.value; save(); return; }
+  // Recetas de la explosión (sub-pestaña Explosión): se guardan al
+  // teclear, sin re-renderizar; un campo vacío queda en null y al
+  // calcular se usa el valor por defecto de esa receta.
+  const rp=e.target.closest("[data-recipe]");
+  if(rp){
+    if(!S.cfg.recipes||typeof S.cfg.recipes!=="object") S.cfg.recipes=JSON.parse(JSON.stringify(DEFAULT_RECIPES));
+    const key=rp.dataset.recipe, f=rp.dataset.recipeField;
+    if(!S.cfg.recipes[key]||typeof S.cfg.recipes[key]!=="object") S.cfg.recipes[key]=JSON.parse(JSON.stringify(DEFAULT_RECIPES[key]));
+    const v=rp.value===""?null:parseFloat(rp.value);
+    S.cfg.recipes[key][f]=(v!=null&&isFinite(v)&&v>=0)?v:null;
+    save(); return;
+  }
+  const inp=e.target.closest("[data-cfg-field]");
+  if(!inp) return;
+  const pid=inp.dataset.pid, f=inp.dataset.cfgField;
+  if(f==="bagTypeName"||f==="bagTypeSize"){
+    const idx=parseInt(inp.dataset.bagIdx,10);
+    const types=S.cfg[pid].bagTypes;
+    if(!Array.isArray(types)||!types[idx]) return;
+    if(f==="bagTypeName") types[idx].name=inp.value;
+    else types[idx].size=(inp.value===""?null:inp.value);
+    save(); return;
+  }
+  if(f==="inPackage"||f==="useTare"||f==="weighBag"){
+    S.cfg[pid][f]=inp.checked;
+    if(f==="inPackage"&&inp.checked){
+      if(S.cfg[pid].qtyPerPackage==null) S.cfg[pid].qtyPerPackage=1;
+      const pp=PRODUCTS.find(x=>x.id===pid);
+      if(pp&&pp.sec==="TORTILLAS"&&pid!=="tortilla-canelo"&&S.cfg[pid].qtyPerPackageEsp==null) S.cfg[pid].qtyPerPackageEsp=TORTILLA_PER_BOX_ESP[pid];
+    }
+    if(f==="inPackage"&&!inp.checked) S.cfg[pid].weighBag=false;
+    if(f==="useTare"&&inp.checked&&S.cfg[pid].tareWeight==null) S.cfg[pid].tareWeight=0;
+    if(f==="weighBag"&&inp.checked&&num(S.cfg[pid].weightPerPiece)<=0) S.cfg[pid].weightPerPiece=0.009;
+    save(); renderConfig();
+  } else if(f==="envUnit"){
+    S.cfg[pid][f]=inp.value; save();
+  } else {
+    S.cfg[pid][f]=(inp.value===""?null:inp.value); save();
+  }
+});
+document.getElementById("view-config").addEventListener("change",e=>{
+  const inp=e.target.closest("[data-cfg-field]");
+  if(!inp) return;
+  if(inp.dataset.cfgField==="inPackage"||inp.dataset.cfgField==="useTare"||inp.dataset.cfgField==="weighBag"){
+    S.cfg[inp.dataset.pid][inp.dataset.cfgField]=inp.checked;
+    if(inp.dataset.cfgField==="weighBag"&&inp.checked&&num(S.cfg[inp.dataset.pid].weightPerPiece)<=0) S.cfg[inp.dataset.pid].weightPerPiece=0.009;
+    save(); renderConfig();
+  } else if(inp.dataset.cfgField==="envUnit"){
+    S.cfg[inp.dataset.pid].envUnit=inp.value; save();
+  }
+});
+
+/* ============ Vista de impresión (hoja igual a la de papel, para PDF) ============ */
+/* Replica el diseño de la hojita de papel: mismo encabezado (Sucursal/Turno/
+   Fecha/Hora + logo), mismo orden de secciones, SALSAS con ADEREZOS y
+   REFRESCOS con DESECHABLES lado a lado, y las firmas. La columna CF/COC no
+   va aquí (el papel no la tiene): solo queda en la vista de la app; en su
+   lugar, en el espacio en blanco de cada renglón van los dos números
+   contados en cuarto frío y en cocina, sin etiquetas, como los escribe la
+   gerenta: los tercios solo guían la posición — cada valor va centrado en
+   el suyo (cuarto frío en el primer tercio, cocina en el segundo y el
+   tercer tercio lleva la explosión: solo en Queso, Pasta p/ Pizza y
+   Pepperoni, en los demás renglones queda vacío) — pero la casilla se ve
+   como una sola área en blanco, sin líneas ni bordes divisorios. En CAJAS
+   van el desglose por especialidad (12 especialidades, sin Cub) y el
+   total de canelo (en P/H), con la caja parcial como "8-1"; la casilla
+   de Cub queda vacía, las cajas vacías van en la columna DEV y el INV,
+   el KARDEX y la DIF van alineados con la rejilla de TORTILLAS, con la
+   DIF en la última casilla. La DIF SÍ se escribe en el
+   PDF (INV − KARDEX, incluso si es 0); la DEV de tortillas y la T de
+   DIF/T van en blanco (se llenan a mano en el papel) y las casillas con
+   valor 0 también van vacías. */
+function printCols(widths){
+  return "<colgroup>"+widths.map(w=>'<col style="width:'+w+'%">').join("")+"</colgroup>";
+}
+function printSheetHtml(rec){
+  const hdr=rec.header||{};
+  // En el PDF las casillas con valor 0 van vacías (como las deja la gerenta
+  // en el papel). z() aplica esa regla a cualquier número.
+  const z=(v)=>{const s=fmt(v);return s==="0"?"":s;};
+  const kOf=(pid)=>z(num(rec.kardex&&rec.kardex[pid]));
+  const flVal=(pid,code)=>z(num(flavorCellValue(rec,pid,code)));
+  /* Desglose de cajas como lo escribe la gerenta en el papel: las cajas del
+     tipo principal por especialidad en su columna; el total del tipo que se
+     empaca en ese tamaño va en una columna fija — el canelo en P/H —; la
+     caja parcial se escribe junto a las enteras de su especialidad ("8-1").
+     El desglose usa las primeras 12 especialidades (sin Cub): la casilla
+     de Cub queda vacía y las casillas de vacías, INV, KARDEX y DIF van
+     UNA CASILLA A LA DERECHA de donde estaban antes, alineadas con la
+     rejilla de TORTILLAS (vacías en DEV, INV en INV, KARDEX en KARDEX y
+     DIF en la última casilla). El total de sartén ya no se muestra como
+     casilla en Cub, pero SIGUE sumando al INV (cajasFamiliarTotal lo
+     cuenta); el total de canelo sigue en P/H. En CAJAS, las cajas vacías
+     contadas van en la columna DEV (en blanco si son 0); la DIF se
+     escribe en el PDF (INV − KARDEX, incluso si es 0) y la DEV de
+     tortillas y la T de DIF/T van en blanco (se llenan a mano en el
+     papel). La Dev/Mer de las cajas no se imprime en el PDF (para que la
+     DIF quede en la última casilla); en las demás secciones Dev/Mer SÍ
+     se muestra cuando hay devolución (en blanco si es 0). */
+  const cajaCells=(mainPid,extraPid,extraIdx,flavs)=>{
+    const list=flavs||FLAVORS;
+    return list.map((f,i)=>{
+      let boxes=[1,2].reduce((a,part)=>a+boxesFlavorPart(rec,mainPid,part,f.code),0);
+      let partials=[1,2].reduce((a,part)=>a+partialFlavorPart(rec,mainPid,part,f.code),0);
+      if(i===extraIdx){
+        const extraFull=[1,2].reduce((a,part)=>a+boxesOfTypePart(rec,extraPid,part)-partialsOfTypePart(rec,extraPid,part),0);
+        const extraPart=[1,2].reduce((a,part)=>a+partialsOfTypePart(rec,extraPid,part),0);
+        boxes+=extraFull; partials+=extraPart;
+      }
+      if(boxes===0&&partials===0) return '<td class="num"></td>';
+      return '<td class="num">'+(partials>0?boxes+"-"+partials:boxes)+'</td>';
+    }).join("");
+  };
+  const wT=[23,7].concat(Array(13).fill(3.31)).concat([5,7,8,7]);
+  // INGREDIENTES se queda como en la hoja original (casilla de parciales
+  // ancha con cuarto frío, cocina y explosión).
+  const wI=[23,7,40,8,7.5,8,6.5];
+  // SALSAS/ADEREZOS/REFRESCOS/DESECHABLES: 7 columnas en total
+  // (PRODUCTO, UM, parciales, Dev/Mer, INV, KARDEX, DIF). La casilla de
+  // parciales (cuarto frío y cocina) va un poco más ancha para que quepan
+  // bien los datos; Dev/Mer, INV, KARDEX y DIF miden igual entre sí.
+  const wP=[34,8,14,11,11,11,11];
+  let h='<div class="psheet">';
+  // Encabezado
+  h+='<table class="phead"><tr>'
+    +'<td style="width:38%"><b>SUCURSAL:</b> '+esc(hdr.sucursal||"")+'</td>'
+    +'<td style="width:38%"><b>TURNO:</b> '+esc(hdr.turno||"")+'</td>'
+    +'<td class="plogo" rowspan="2"><svg width="58" height="46" viewBox="0 0 100 78" xmlns="http://www.w3.org/2000/svg"><polygon points="3,3 97,3 50,75" fill="none" stroke="#000" stroke-width="2"/><text x="50" y="20" text-anchor="middle" font-size="10" font-weight="bold" font-family="Arial,sans-serif">FANATICOS</text><text x="50" y="33" text-anchor="middle" font-size="8" font-family="Arial,sans-serif">DE LA</text><text x="50" y="50" text-anchor="middle" font-size="12" font-weight="bold" font-family="Arial,sans-serif">PIZZA</text></svg><div class="pupd">Actualizado Junio 2025 Op</div></td></tr>'
+    +'<tr><td><b>FECHA:</b> '+esc(hdr.fecha||"")+'</td><td><b>HORA:</b> '+esc(hdr.hora||"")+'</td></tr></table>';
+  // CAJAS: misma rejilla que TORTILLAS (19 columnas): desglose de 12
+  // especialidades (sin Cub, esa casilla queda vacía), vacías en DEV,
+  // INV en INV, KARDEX en KARDEX y DIF en la última casilla.
+  h+='<table class="ptable">'+printCols(wT)
+    +'<tr><th>PRODUCTOS</th><th>UM</th>'+("<th></th>").repeat(17)+'</tr>'
+    +'<tr class="band"><th>CAJAS</th><th>UM</th>'+("<th></th>").repeat(17)+'</tr>';
+  PRODUCTS.filter(p=>p.sec==="CAJAS").forEach(p=>{
+    const cells=p.id==="caja-familiar-qp"?cajaCells("tortilla-familiar","tortilla-sarten",12,FLAVORS.slice(0,12)):cajaCells("tortilla-chica","tortilla-canelo",6,FLAVORS.slice(0,12));
+    h+='<tr><td class="pn">'+esc(p.name)+'</td><td class="um">'+esc(p.um)+'</td>'+cells+'<td class="num"></td><td class="num">'+z(vaciasTotal(rec,p.id))+'</td><td class="num">'+z(invTotal(rec,p.id))+'</td><td class="num">'+kOf(p.id)+'</td><td class="num">'+fmt(difOf(rec,p.id))+'</td></tr>';
+  });
+  h+='</table>';
+  // TORTILLAS
+  h+='<table class="ptable">'+printCols(wT)
+    +'<tr class="band"><th>TORTILLAS</th><th>UM</th>'+FLAVORS.map(f=>"<th>"+f.code+"</th>").join("")+'<th>DEV</th><th>INV</th><th>KARDEX</th><th>DIF</th></tr>';
+  PRODUCTS.filter(p=>p.sec==="TORTILLAS").forEach(p=>{
+    // La casilla DEV lleva la Dev/Mer de la tortilla (la DEV manual de
+    // tortillas no se imprime: se llena a mano en el papel).
+    h+='<tr><td class="pn">'+esc(p.name)+'</td><td class="um">'+esc(p.um)+'</td>'
+      +FLAVORS.map(f=>'<td class="num">'+flVal(p.id,f.code)+'</td>').join("")
+      +'<td class="num">'+z(num(rec.devmer&&rec.devmer[p.id]))+'</td><td class="num"><b>'+z(invTotal(rec,p.id))+'</b></td><td class="num">'+kOf(p.id)+'</td><td class="num">'+fmt(difOf(rec,p.id))+'</td></tr>';
+  });
+  h+='</table>';
+  // INGREDIENTES
+  h+='<table class="ptable">'+printCols(wI)
+    +'<tr class="band"><th>INGREDIENTES</th><th>UM</th><th></th><th>Dev/Mer</th><th>INV.</th><th>KARDEX</th><th>DIF/ T</th></tr>';
+  PRODUCTS.filter(p=>p.sec==="INGREDIENTES").forEach(p=>{
+    const inv=invTotal(rec,p.id);
+    // Tercer tercio: la explosión (solo Queso, Pasta p/ Pizza y
+    // Pepperoni). En esos tres renglones el total se muestra AUNQUE sea 0
+    // (se lee "0"): es la única excepción a la regla de ceros vacíos del
+    // PDF. En los demás renglones el tercer tercio queda vacío.
+    const exKey=EXPLOSION_PRODUCTS[p.id];
+    const exVal=exKey?num(explosionOf(rec)[exKey]):0;
+    h+='<tr><td class="pn">'+esc(p.name)+'</td><td class="um">'+esc(p.um)+'</td>'
+      +'<td><span style="display:inline-block;width:33%;text-align:center">'+z(partTotal(rec,p.id,1))+'</span><span style="display:inline-block;width:33%;text-align:center">'+z(partTotal(rec,p.id,2))+'</span><span style="display:inline-block;width:33%;text-align:center">'+(exKey?fmt(exVal):"")+'</span></td>'
+      +'<td class="num">'+z(num(rec.devmer&&rec.devmer[p.id]))+'</td><td class="num"><b>'+z(inv)+'</b></td><td class="num">'+kOf(p.id)+'</td><td class="num">'+fmt(difOf(rec,p.id))+'</td></tr>';
+  });
+  h+='</table>';
+  // SALSAS + ADEREZOS y REFRESCOS + DESECHABLES, lado a lado
+  function pairTable(sec,title,invLabel,kardLabel){
+    let t='<table class="ptable">'+printCols(wP)
+      +'<tr class="band"><th>'+title+'</th><th>UM</th><th></th><th>Dev/Mer</th><th>'+invLabel+'</th><th>'+kardLabel+'</th><th>DIF</th></tr>';
+    PRODUCTS.filter(p=>p.sec===sec).forEach(p=>{
+      t+='<tr><td class="pn">'+esc(p.name)+'</td><td class="um">'+esc(p.um)+'</td><td class="pp"><span class="ppf"><span>'+z(partTotal(rec,p.id,1))+'</span><span>'+z(partTotal(rec,p.id,2))+'</span></span></td><td class="num">'+z(num(rec.devmer&&rec.devmer[p.id]))+'</td><td class="num"><b>'+z(invTotal(rec,p.id))+'</b></td><td class="num">'+kOf(p.id)+'</td><td class="num">'+fmt(difOf(rec,p.id))+'</td></tr>';
+    });
+    return t+'</table>';
+  }
+  h+='<table class="ppair"><tr><td>'+pairTable("SALSAS","SALSAS","INV","KARD")+'</td><td>'+pairTable("ADEREZOS","ADEREZOS","INV.","KARDEX")+'</td></tr></table>';
+  h+='<table class="ppair"><tr><td>'+pairTable("REFRESCOS","REFRESCOS","INV","KARD")+'</td><td>'+pairTable("DESECHABLES","DESECHABLES","INV","KARDEX")+'</td></tr></table>';
+  // Firmas
+  h+='<table class="psigns"><tr>'
+    +'<td><div class="ln"></div><div class="lb">Firma del Gerente</div></td>'
+    +'<td><div class="ln"></div><div class="lb">Firma del Cajero</div></td>'
+    +'<td><div class="ln"></div><div class="lb">Firma del Gerente de zona / Auditor</div></td>'
+    +'</tr></table>';
+  return h+'</div>';
+}
+function renderPrintSheet(rec){
+  const el=document.getElementById("printSheet");
+  if(el) el.innerHTML=rec?printSheetHtml(rec):"";
+}
+
+/* ============ Inicio ============ */
+load();
+applyFontSize();
+show("count");
+document.getElementById("btn-welcome-save").addEventListener("click",saveWelcome);
+document.getElementById("btn-welcome-later").addEventListener("click",skipWelcome);
+document.getElementById("welcome").addEventListener("click",e=>{ if(e.target.id==="welcome") skipWelcome(); });
+maybeShowWelcome();
+window.QH={get S(){return S;},scrollPos,PRODUCTS,SECTIONS,FLAVORS,RECIPES,DEFAULT_RECIPES,EXPLOSION_PRODUCTS,partTotal,invTotal,difOf,fmt,defaultCfg,sheetText,show,renderCount,renderSheet,renderHistory,renderConfig,flavorTotal,flavorPartTotal,flavorCellValue,tortillaPerBox,boxesPartTotal,partHasFlavors,bagTypesOf,boxesFlavorPart,partialFlavorPart,partialsOfTypePart,vaciasPart,vaciasTotal,printSheetHtml,renderPrintSheet,exportCfgText,importCfg,shareCfg,cleanCfg,cleanRecipes,recipesOf,explosionTotals,explosionOf,explosionBreakdown,sectionStops,nearestStop,updateThumb,maxScroll,b64encode,b64decode,compatCfg,compatDraftCanelo,maybeShowWelcome,saveWelcome,skipWelcome,prefsMissing,normText,applyCfgSearch,hasCapPrintSheet,printSheetNative,FONT_SIZES,applyFontSize,updateCountHeadTop,editHist,draftHasData,histExportPayload,cleanHistRecord,importHistData,exportHist,exportHistOne,importHistFile,histFileName,migrateCaneloRecord};
